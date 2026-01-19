@@ -21,29 +21,25 @@ export default function Navlinks({ user }: NavlinksProps) {
         <Link href="/" className={s.logo} aria-label="Logo">
           <Logo />
         </Link>
-        <nav className="ml-6 space-x-2 lg:block">
-          <Link href="/pricing" className={s.link}>
-  Pricing
-</Link>
 
-{user && (
-  <>
-    <Link href="/dashboard/today" className={s.link}>
-      Dashboard
-    </Link>
-    <Link href="/dashboard/inbox" className={s.link}>
-      Inbox
-    </Link>
-    <Link href="/dashboard/tasks" className={s.link}>
-      Tasks
-    </Link>
-    <Link href="/account" className={s.link}>
-      Account
-    </Link>
-  </>
-)}
-        </nav>
+        {user && (
+          <nav className="ml-6 space-x-2 lg:block">
+            <Link href="/dashboard/today" className={s.link}>
+              Dashboard
+            </Link>
+            <Link href="/dashboard/inbox" className={s.link}>
+              Inbox
+            </Link>
+            <Link href="/dashboard/tasks" className={s.link}>
+              Tasks
+            </Link>
+            <Link href="/account" className={s.link}>
+              Account
+            </Link>
+          </nav>
+        )}
       </div>
+
       <div className="flex justify-end space-x-8">
         {user ? (
           <form onSubmit={(e) => handleRequest(e, SignOut, router)}>
@@ -54,7 +50,7 @@ export default function Navlinks({ user }: NavlinksProps) {
           </form>
         ) : (
           <Link href="/signin" className={s.link}>
-            Sign In
+            Sign in
           </Link>
         )}
       </div>
