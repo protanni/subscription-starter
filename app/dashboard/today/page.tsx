@@ -1,5 +1,5 @@
 // app/dashboard/today/page.tsx
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '../../../lib/supabase/server';
 
 export default async function TodayPage() {
   const supabase = createSupabaseServerClient();

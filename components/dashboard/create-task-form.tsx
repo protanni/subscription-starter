@@ -2,7 +2,7 @@
 
 // components/dashboard/create-task-form.tsx
 import { useState } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { createSupabaseBrowserClient } from '../../lib/supabase/client';
 
 export function CreateTaskForm() {
   const supabase = createSupabaseBrowserClient();

@@ -1,7 +1,7 @@
 // app/dashboard/layout.tsx
 import { ReactNode } from 'react';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
+import { createSupabaseServerClient } from '../../lib/supabase/server';
+import { DashboardSidebar } from '../../components/dashboard/dashboard-sidebar';
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = createSupabaseServerClient();
