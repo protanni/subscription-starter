@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import Footer from '@/components/ui/Footer';
 import Navbar from '@/components/ui/Navbar';
 import { Toaster } from '@/components/ui/Toasts/toaster';
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
         <Suspense>
           <Toaster />
         </Suspense>
+        <SpeedInsights />
       </body>
     </html>
   );
