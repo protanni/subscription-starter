@@ -2,7 +2,7 @@
 
 // components/dashboard/create-capture-form.tsx
 import { useState } from 'react';
-import { createSupabaseBrowserClient } from '../../lib/supabase/client';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function CreateCaptureForm() {
   const supabase = createSupabaseBrowserClient();

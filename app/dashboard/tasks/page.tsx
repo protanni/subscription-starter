@@ -1,7 +1,7 @@
 // app/dashboard/tasks/page.tsx
-import { createSupabaseServerClient } from '../../../lib/supabase/server';
-import { CreateTaskForm } from '../../../components/dashboard/create-task-form';
-import { TaskList } from '../../../components/dashboard/task-list';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { CreateTaskForm } from '@/components/dashboard/create-task-form';
+import { TaskList } from '@/components/dashboard/task-list';
 
 export default async function TasksPage() {
   const supabase = createSupabaseServerClient();

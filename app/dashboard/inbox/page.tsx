@@ -1,7 +1,7 @@
 // app/dashboard/inbox/page.tsx
-import { createSupabaseServerClient } from '../../../lib/supabase/server';
-import { CreateCaptureForm } from '../../../components/dashboard/create-capture-form';
-import { InboxList } from '../../../components/dashboard/inbox-list';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { CreateCaptureForm } from '@/components/dashboard/create-capture-form';
+import { InboxList } from '@/components/dashboard/inbox-list';
 
 export default async function InboxPage() {
   const supabase = createSupabaseServerClient();
