@@ -1,29 +1,33 @@
-// app/dashboard/layout.tsx
-import { ReactNode } from 'react';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/utils/supabase/server';
+import { getSubscription, getUser } from '@/utils/supabase/queries';
 
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const supabase = createSupabaseServerClient();
-  const { data } = await supabase.auth.getUser();
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = createClient();
 
-  // Proteção simples: se não tem user, manda pro login do teu template
-  // Ajuste para a rota real do seu starter (/sign-in, /login, /auth, etc.)
-  if (!data.user) {
-    return (
-      <div className="p-8">
-        <p>Você precisa estar logada para acessar o dashboard.</p>
-      </div>
-    );
+  const [user, subscription] = await Promise.all([
+    getUser(supabase),
+    getSubscription(supabase),
+  ]);
+
+  if (!user) {
+    redirect('/signin?redirectTo=/dashboard');
   }
 
-  // Seed das 12 áreas: só cria se não existir (sua função já protege) :contentReference[oaicite:4]{index=4}
-  await supabase.rpc('seed_default_life_areas');
+  const status = subscription?.status ?? null;
+  const isActive = status === 'active' || status === 'trialing';
+
+  if (!isActive) {
+    redirect('/pricing?paywall=1');
+  }
 
   return (
-    <div className="flex min-h-screen">
-      <DashboardSidebar />
-      <main className="flex-1 p-6">{children}</main>
+    <div className="min-h-screen">
+      {children}
     </div>
   );
 }
