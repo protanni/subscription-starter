@@ -1,46 +1,41 @@
 'use client';
 
-// components/dashboard/create-task-form.tsx
-import { useState } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
+/**
+ * CreateTaskForm
+ * - Client Component used on the Tasks page.
+ * - Calls POST /api/tasks to create a task.
+ * - Uses router.refresh() to re-fetch Server Component data (no full reload).
+ */
 export function CreateTaskForm() {
-  const supabase = createSupabaseBrowserClient();
   const [title, setTitle] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     const value = title.trim();
     if (!value) return;
 
-    setLoading(true);
-    const { data: auth } = await supabase.auth.getUser();
-    const user = auth.user;
-
-    if (!user) {
-      setLoading(false);
-      alert('Você precisa estar logada.');
-      return;
-    }
-
-    const { error } = await supabase.from('tasks').insert({
-      user_id: user.id,
-      title: value,
-      status: 'todo',
-      priority: 'medium',
-      is_deleted: false,
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: value }),
     });
 
-    setLoading(false);
-
-    if (error) {
-      alert(error.message);
+    if (!res.ok) {
+      // MVP-level error handling. Later we can replace with a toast system.
+      console.error(await res.text());
       return;
     }
 
     setTitle('');
-    window.location.reload();
+
+    // Re-fetch tasks list from the server without a full page reload.
+    startTransition(() => router.refresh());
   }
 
   return (
@@ -49,13 +44,14 @@ export function CreateTaskForm() {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         className="flex-1 rounded-md border px-3 py-2"
-        placeholder="Nova task..."
+        placeholder="New task…"
+        disabled={isPending}
       />
       <button
-        disabled={loading}
+        disabled={isPending}
         className="rounded-md bg-black px-3 py-2 text-white disabled:opacity-60"
       >
-        {loading ? '...' : 'Adicionar'}
+        {isPending ? '...' : 'Add'}
       </button>
     </form>
   );

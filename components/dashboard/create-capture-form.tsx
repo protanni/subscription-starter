@@ -1,64 +1,66 @@
 'use client';
 
-// components/dashboard/create-capture-form.tsx
-import { useState } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
+/**
+ * CreateCaptureForm
+ * - Client Component used on the Inbox page.
+ * - Calls POST /api/captures to create an inbox item.
+ * - Refreshes the route to re-fetch Server Component data.
+ */
 export function CreateCaptureForm() {
-  const supabase = createSupabaseBrowserClient();
   const [content, setContent] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     const value = content.trim();
     if (!value) return;
 
-    setLoading(true);
-    const { data: auth } = await supabase.auth.getUser();
-    const user = auth.user;
-
-    if (!user) {
-      setLoading(false);
-      alert('Você precisa estar logada.');
-      return;
-    }
-
-    const { error } = await supabase.from('captures').insert({
-      user_id: user.id,
-      content: value,
-      status: 'inbox',
-      type: 'note',
+    const res = await fetch('/api/captures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: value, type: 'note' }),
     });
 
-    setLoading(false);
-
-    if (error) {
-      alert(error.message);
+    if (!res.ok) {
+      console.error(await res.text());
       return;
     }
 
     setContent('');
-    // simples: reload pra refletir — depois a gente melhora com optimistic UI
-    window.location.reload();
+
+    // This refresh re-runs the server-side query in app/dashboard/inbox/page.tsx
+    startTransition(() => router.refresh());
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-md border p-4 space-y-3">
-      <div className="font-medium">Quick capture</div>
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="w-full rounded-md border p-2"
-        rows={3}
-        placeholder="Tira da cabeça e joga aqui..."
-      />
-      <button
-        disabled={loading}
-        className="rounded-md bg-black px-3 py-2 text-white disabled:opacity-60"
-      >
-        {loading ? 'Salvando...' : 'Adicionar'}
-      </button>
+    <form onSubmit={onSubmit} className="rounded-md border p-3">
+      <label className="text-sm font-medium">Quick Capture</label>
+
+      <div className="mt-2 flex gap-2">
+        <input
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Write anything… (press Enter)"
+          className="w-full rounded-md border px-3 py-2"
+          disabled={isPending}
+        />
+        <button
+          type="submit"
+          className="rounded-md border px-4 py-2 hover:bg-gray-50"
+          disabled={isPending}
+        >
+          Add
+        </button>
+      </div>
+
+      <p className="mt-2 text-xs text-muted-foreground">
+        Capture first. Process later.
+      </p>
     </form>
   );
 }

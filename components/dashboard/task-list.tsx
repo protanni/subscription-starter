@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 type Task = {
   id: string;
@@ -9,63 +9,68 @@ type Task = {
   status: string;
   priority: string;
   created_at: string;
+  completed_at: string | null;
 };
 
+/**
+ * TaskList
+ * - Client Component for toggling tasks (done/undo).
+ * - Calls POST /api/tasks/toggle
+ */
 export function TaskList({ initialTasks }: { initialTasks: Task[] }) {
-  const supabase = createSupabaseBrowserClient();
-  const [tasks, setTasks] = useState(initialTasks);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
-  async function markDone(id: string) {
-    setBusyId(id);
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: 'done' })
-      .eq('id', id);
+  async function toggle(taskId: string) {
+    const res = await fetch('/api/tasks/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId }),
+    });
 
-    setBusyId(null);
-
-    if (error) {
-      alert(error.message);
+    if (!res.ok) {
+      console.error(await res.text());
       return;
     }
 
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: 'done' } : t))
-    );
+    startTransition(() => router.refresh());
   }
 
-  if (!tasks.length) {
-    return <div className="text-sm text-gray-500">Sem tasks ainda.</div>;
+  if (!initialTasks.length) {
+    return (
+      <div className="rounded-md border p-4 text-sm text-muted-foreground">
+        No tasks yet. Create your first task above.
+      </div>
+    );
   }
 
   return (
     <ul className="space-y-2">
-      {tasks.map((t) => (
-        <li
-          key={t.id}
-          className="rounded-md border p-3 flex items-center justify-between gap-3"
-        >
-          <div>
-            <div className={t.status === 'done' ? 'line-through opacity-70' : ''}>
-              {t.title}
-            </div>
-            <div className="text-xs text-gray-500">
-              {t.status} • {t.priority}
-            </div>
-          </div>
+      {initialTasks.map((t) => {
+        const done = t.status === 'done';
+        return (
+          <li key={t.id} className="rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className={`font-medium ${done ? 'line-through opacity-70' : ''}`}>
+                  {t.title}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {done ? 'Completed' : 'Open'} • Priority: {t.priority}
+                </div>
+              </div>
 
-          {t.status !== 'done' && (
-            <button
-              onClick={() => markDone(t.id)}
-              disabled={busyId === t.id}
-              className="rounded-md border px-3 py-1 text-sm disabled:opacity-60"
-            >
-              {busyId === t.id ? '...' : 'Concluir'}
-            </button>
-          )}
-        </li>
-      ))}
+              <button
+                className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50"
+                onClick={() => toggle(t.id)}
+                disabled={isPending}
+              >
+                {done ? 'Undo' : 'Done'}
+              </button>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

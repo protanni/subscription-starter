@@ -8,13 +8,16 @@ export default async function TodayPage() {
 
   if (!user) return null;
 
-  // v_today_summary existe no seu SQL :contentReference[oaicite:5]{index=5}
+  // View `v_today_summary` is expected to exist in your DB.
+  // It aggregates today's key KPIs (tasks due, habits logged, mood, events count).
   const { data: summary } = await supabase
     .from('v_today_summary')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
 
+  // NOTE: This uses UTC boundaries. If you want user-local day boundaries later,
+  // store user's timezone in `profiles.locale/timezone` and compute ranges accordingly.
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: events } = await supabase
@@ -38,15 +41,16 @@ export default async function TodayPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Events</h2>
+
         {!events?.length ? (
-          <div className="text-sm text-muted-foreground">Nenhum evento hoje.</div>
+          <div className="text-sm text-muted-foreground">No events today.</div>
         ) : (
           <ul className="space-y-2">
             {events.map((e) => (
               <li key={e.id} className="rounded-md border p-3">
                 <div className="font-medium">{e.title}</div>
                 <div className="text-sm text-muted-foreground">
-                  {e.all_day ? 'Dia todo' : `${e.starts_at}${e.ends_at ? ` → ${e.ends_at}` : ''}`}
+                  {formatEventTime(e)}
                 </div>
               </li>
             ))}
@@ -64,4 +68,17 @@ function StatCard({ title, value }: { title: string; value: any }) {
       <div className="mt-1 text-2xl font-semibold">{String(value)}</div>
     </div>
   );
+}
+
+function formatEventTime(e: { all_day: boolean; starts_at: string; ends_at: string | null }) {
+  // Avoid showing raw ISO strings in the UI.
+  if (e.all_day) return 'All day';
+
+  const start = new Date(e.starts_at);
+  const end = e.ends_at ? new Date(e.ends_at) : null;
+
+  const fmt = (d: Date) =>
+    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+  return end ? `${fmt(start)} → ${fmt(end)}` : fmt(start);
 }
