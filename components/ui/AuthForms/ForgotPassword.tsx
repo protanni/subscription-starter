@@ -19,7 +19,9 @@ export default function ForgotPassword({
   redirectMethod,
   disableButton
 }: ForgotPasswordProps) {
-  const router = redirectMethod === 'client' ? useRouter() : null;
+  const nextRouter = useRouter();
+  const router = redirectMethod === 'client' ? nextRouter : null;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -30,11 +32,7 @@ export default function ForgotPassword({
 
   return (
     <div className="my-8">
-      <form
-        noValidate={true}
-        className="mb-4"
-        onSubmit={(e) => handleSubmit(e)}
-      >
+      <form noValidate={true} className="mb-4" onSubmit={handleSubmit}>
         <div className="grid gap-2">
           <div className="grid gap-1">
             <label htmlFor="email">Email</label>
@@ -60,11 +58,13 @@ export default function ForgotPassword({
           </Button>
         </div>
       </form>
+
       <p>
         <Link href="/signin/password_signin" className="font-light text-sm">
           Sign in with email and password
         </Link>
       </p>
+
       {allowEmail && (
         <p>
           <Link href="/signin/email_signin" className="font-light text-sm">
@@ -72,9 +72,10 @@ export default function ForgotPassword({
           </Link>
         </p>
       )}
+
       <p>
         <Link href="/signin/signup" className="font-light text-sm">
-          Don't have an account? Sign up
+          Don&apos;t have an account? Sign up
         </Link>
       </p>
     </div>
