@@ -1,10 +1,5 @@
-/* components/ui/Navbar/Navbar.module.css */
-
 .root {
-  @apply sticky top-0 z-40 h-16 md:h-20 transition-all duration-150;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(8px);
+  @apply sticky top-0 bg-black z-40 transition-all duration-150 h-16 md:h-20;
 }
 
 .link {

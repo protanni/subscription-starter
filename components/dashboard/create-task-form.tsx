@@ -49,8 +49,7 @@ export function CreateTaskForm() {
       />
       <button
         disabled={isPending}
-        className="rounded-md px-3 py-2 text-white disabled:opacity-60"
-style={{ background: 'var(--primary)' }}
+        className="rounded-md bg-black px-3 py-2 text-white disabled:opacity-60"
       >
         {isPending ? '...' : 'Add'}
       </button>
