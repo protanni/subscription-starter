@@ -1,0 +1,98 @@
+/* globals.css */
+
+/* Force light mode */
+:root {
+  color-scheme: light;
+}
+
+/* PROTANNI Design System */
+:root {
+  /* Base */
+  --bg: #E4F1ED;
+  --surface: #FFFFFF;
+  --surface-2: #F8FCFB;
+
+  /* Brand */
+  --primary: #1F6B68;
+  --primary-hover: #134E4C;
+  --secondary: #2D6C9F;
+  --secondary-hover: #1F517A;
+
+  /* Text */
+  --text-strong: #062323;
+  --text: #2B4040;
+  --text-muted: #577575;
+
+  /* States */
+  --focus: #1F6B68;
+  --destructive: #955050;
+  --destructive-foreground: #FAFAFA;
+
+  /* UI */
+  --border: rgba(6, 35, 35, 0.12);
+  --shadow: 0 1px 2px rgba(6, 35, 35, 0.06), 0 4px 16px rgba(6, 35, 35, 0.06);
+  --radius: 12px;
+}
+
+/* Base page */
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-strong);
+}
+
+a {
+  color: inherit;
+}
+
+/* Inputs */
+input, textarea, select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  outline: none;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(31, 107, 104, 0.65);
+  box-shadow: 0 0 0 3px rgba(31, 107, 104, 0.18);
+}
+
+/* Buttons (if you don’t have a component system already) */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: 1px solid rgba(0,0,0,0.04);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.btn-primary:hover { background: var(--primary-hover); }
+
+.btn-secondary {
+  background: var(--secondary);
+  color: white;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.btn-secondary:hover { background: var(--secondary-hover); }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Muted text helper */
+.text-muted { color: var(--text-muted); }
