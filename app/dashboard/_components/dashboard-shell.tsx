@@ -10,7 +10,7 @@ const nav = [
 ];
 
 function getPageTitle(pathname: string) {
-  if (pathname === '/dashboard' || pathname === '/dashboard/today') return 'Today';
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/today')) return 'Today';
   if (pathname.startsWith('/dashboard/inbox')) return 'Inbox';
   if (pathname.startsWith('/dashboard/tasks')) return 'Tasks';
   return 'Dashboard';

@@ -98,7 +98,7 @@ export function InboxList({
           onClick={() => switchView('inbox')}
           className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
             currentView === 'inbox'
-              ? 'bg-gray-900 text-white'
+              ? 'bg-gray-200 text-gray-900'
               : 'bg-white text-gray-700 hover:bg-gray-50'
           }`}
         >
@@ -108,7 +108,7 @@ export function InboxList({
           onClick={() => switchView('archived')}
           className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
             currentView === 'archived'
-              ? 'bg-gray-900 text-white'
+              ? 'bg-gray-200 text-gray-900'
               : 'bg-white text-gray-700 hover:bg-gray-50'
           }`}
         >
