@@ -17,7 +17,9 @@ export default function PasswordSignIn({
   allowEmail,
   redirectMethod
 }: PasswordSignInProps) {
-  const router = redirectMethod === 'client' ? useRouter() : null;
+  const nextRouter = useRouter();
+  const router = redirectMethod === 'client' ? nextRouter : null;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -28,11 +30,7 @@ export default function PasswordSignIn({
 
   return (
     <div className="my-8">
-      <form
-        noValidate={true}
-        className="mb-4"
-        onSubmit={(e) => handleSubmit(e)}
-      >
+      <form noValidate={true} className="mb-4" onSubmit={handleSubmit}>
         <div className="grid gap-2">
           <div className="grid gap-1">
             <label htmlFor="email">Email</label>
@@ -46,6 +44,7 @@ export default function PasswordSignIn({
               autoCorrect="off"
               className="w-full p-3 rounded-md bg-zinc-800"
             />
+
             <label htmlFor="password">Password</label>
             <input
               id="password"
@@ -56,21 +55,19 @@ export default function PasswordSignIn({
               className="w-full p-3 rounded-md bg-zinc-800"
             />
           </div>
-          <Button
-            variant="slim"
-            type="submit"
-            className="mt-1"
-            loading={isSubmitting}
-          >
+
+          <Button variant="slim" type="submit" className="mt-1" loading={isSubmitting}>
             Sign in
           </Button>
         </div>
       </form>
+
       <p>
         <Link href="/signin/forgot_password" className="font-light text-sm">
           Forgot your password?
         </Link>
       </p>
+
       {allowEmail && (
         <p>
           <Link href="/signin/email_signin" className="font-light text-sm">
@@ -78,9 +75,10 @@ export default function PasswordSignIn({
           </Link>
         </p>
       )}
+
       <p>
         <Link href="/signin/signup" className="font-light text-sm">
-          Don't have an account? Sign up
+          Don&apos;t have an account? Sign up
         </Link>
       </p>
     </div>

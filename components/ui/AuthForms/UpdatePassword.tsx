@@ -10,10 +10,10 @@ interface UpdatePasswordProps {
   redirectMethod: string;
 }
 
-export default function UpdatePassword({
-  redirectMethod
-}: UpdatePasswordProps) {
-  const router = redirectMethod === 'client' ? useRouter() : null;
+export default function UpdatePassword({ redirectMethod }: UpdatePasswordProps) {
+  const nextRouter = useRouter();
+  const router = redirectMethod === 'client' ? nextRouter : null;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -24,11 +24,7 @@ export default function UpdatePassword({
 
   return (
     <div className="my-8">
-      <form
-        noValidate={true}
-        className="mb-4"
-        onSubmit={(e) => handleSubmit(e)}
-      >
+      <form noValidate={true} className="mb-4" onSubmit={handleSubmit}>
         <div className="grid gap-2">
           <div className="grid gap-1">
             <label htmlFor="password">New Password</label>
@@ -40,6 +36,7 @@ export default function UpdatePassword({
               autoComplete="current-password"
               className="w-full p-3 rounded-md bg-zinc-800"
             />
+
             <label htmlFor="passwordConfirm">Confirm New Password</label>
             <input
               id="passwordConfirm"
@@ -50,12 +47,8 @@ export default function UpdatePassword({
               className="w-full p-3 rounded-md bg-zinc-800"
             />
           </div>
-          <Button
-            variant="slim"
-            type="submit"
-            className="mt-1"
-            loading={isSubmitting}
-          >
+
+          <Button variant="slim" type="submit" className="mt-1" loading={isSubmitting}>
             Update Password
           </Button>
         </div>

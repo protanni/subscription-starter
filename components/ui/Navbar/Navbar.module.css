@@ -1,17 +1,18 @@
 .root {
-  @apply sticky top-0 bg-black z-40 transition-all duration-150 h-16 md:h-20;
+  @apply sticky top-0 bg-white z-40 transition-all duration-150 h-16 md:h-20 border-b border-green-200;
 }
 
 .link {
-  @apply inline-flex items-center leading-6 font-medium transition ease-in-out duration-75 cursor-pointer text-zinc-200 rounded-md p-1;
+  @apply inline-flex items-center leading-6 font-medium transition ease-in-out duration-75 cursor-pointer
+    text-slate-900 rounded-md p-1;
 }
 
 .link:hover {
-  @apply text-zinc-100;
+  @apply text-green-600;
 }
 
 .link:focus {
-  @apply outline-none text-zinc-100 ring-2 ring-pink-500 ring-opacity-50;
+  @apply outline-none text-green-700 ring-2 ring-green-500 ring-opacity-40;
 }
 
 .logo {

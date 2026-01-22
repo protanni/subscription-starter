@@ -11,6 +11,20 @@ export const getUser = cache(async (supabase: AnySupabaseClient) => {
   return user;
 });
 
+export async function getProfile(
+  supabase: AnySupabaseClient,
+  userId: string
+) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, is_paid, onboarding_completed, locale, full_name, avatar_url')
+    .eq('id', userId)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
 export const getSubscription = cache(async (supabase: AnySupabaseClient) => {
   const { data: subscription } = await supabase
     .from('subscriptions')

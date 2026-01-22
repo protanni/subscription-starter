@@ -19,7 +19,9 @@ export default function EmailSignIn({
   redirectMethod,
   disableButton
 }: EmailSignInProps) {
-  const router = redirectMethod === 'client' ? useRouter() : null;
+  const nextRouter = useRouter();
+  const router = redirectMethod === 'client' ? nextRouter : null;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -30,11 +32,7 @@ export default function EmailSignIn({
 
   return (
     <div className="my-8">
-      <form
-        noValidate={true}
-        className="mb-4"
-        onSubmit={(e) => handleSubmit(e)}
-      >
+      <form noValidate={true} className="mb-4" onSubmit={handleSubmit}>
         <div className="grid gap-2">
           <div className="grid gap-1">
             <label htmlFor="email">Email</label>
@@ -60,6 +58,7 @@ export default function EmailSignIn({
           </Button>
         </div>
       </form>
+
       {allowPassword && (
         <>
           <p>
@@ -69,7 +68,7 @@ export default function EmailSignIn({
           </p>
           <p>
             <Link href="/signin/signup" className="font-light text-sm">
-              Don't have an account? Sign up
+              Don&apos;t have an account? Sign up
             </Link>
           </p>
         </>

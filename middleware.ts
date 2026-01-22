@@ -76,23 +76,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 3) Must have an active/trialing subscription to access dashboard
-  // This assumes your template has a `subscriptions` table synced via webhooks.
-  // Common shape: subscriptions.status, subscriptions.user_id
-  const { data: subscription, error: subError } = await supabase
-    .from('subscriptions')
-    .select('status')
-    .eq('user_id', user.id)
-    .in('status', ['active', 'trialing'])
-    .maybeSingle();
+  // 3) Must be "paid" to access dashboard (MVP: no Stripe)
+// Gate is controlled via public.profiles.is_paid
+const { data: profile, error: profileError } = await supabase
+  .from('profiles')
+  .select('is_paid')
+  .eq('id', user.id)
+  .single();
 
-  // If subscription row doesn't exist or isn't active/trialing -> redirect to pricing
-  if (subError || !subscription || !isActiveSubscriptionStatus(subscription.status)) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/pricing';
-    url.searchParams.set('paywall', '1');
-    return NextResponse.redirect(url);
-  }
+if (profileError || !profile?.is_paid) {
+  const url = request.nextUrl.clone();
+  url.pathname = '/pricing';
+  url.searchParams.set('paywall', '1');
+  return NextResponse.redirect(url);
+}
 
   return sessionResponse;
 }

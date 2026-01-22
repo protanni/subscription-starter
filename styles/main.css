@@ -2,6 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+   :root {
+    /* -----------------------------
+       PROTANNI Design System (Light)
+       ----------------------------- */
+  
+    --pt-bg: #e4f1ed;
+    --pt-surface: #ffffff;
+    --pt-surface-2: #f8fcfb;
+  
+    --pt-primary: #1f6b68;
+    --pt-primary-hover: #134e4c;
+  
+    --pt-secondary: #2d6c9f;
+    --pt-secondary-hover: #1f517a;
+  
+    --pt-text-strong: #062323;
+    --pt-text: #2b4040;
+    --pt-text-muted: #577575;
+  
+    --pt-destructive: #955050;
+    --pt-destructive-foreground: #fafafa;
+  
+    --pt-focus: #1f6b68;
+  
+    /* ------------------------------------
+       Shadcn/Tailwind token aliases (HSL)
+       Tailwind expects HSL tokens like: 178 55% 27%
+       ------------------------------------ */
+  
+    /* PROTANNI primary (#1f6b68) ≈ hsl(178 55% 27%) */
+    --primary: 178 55% 27%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 178 55% 27%;
+  
+    /* Minimal neutrals (good enough for MVP) */
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+  
+    --destructive: 0 70% 35%;
+    --destructive-foreground: 0 0% 98%;
+  }  
+
 *,
 *:before,
 *:after {
@@ -9,7 +55,8 @@
 }
 
 *:focus:not(ol) {
-  @apply outline-none ring-2 ring-pink-500 ring-opacity-50;
+  @apply outline-none ring-2 ring-opacity-50;
+  ring-color: var(--pt-focus);
 }
 
 html {
@@ -28,7 +75,11 @@ body {
     'Helvetica', sans-serif;
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
-  @apply text-white bg-zinc-800 antialiased;
+  @apply antialiased;
+
+  /* Light theme defaults */
+  color: var(--pt-text);
+  background: var(--pt-bg);
 }
 
 body {
@@ -48,12 +99,15 @@ p a {
 .animated {
   -webkit-animation-duration: 1s;
   animation-duration: 1s;
-  -webkit-animation-duration: 1s;
-  animation-duration: 1s;
   -webkit-animation-fill-mode: both;
   animation-fill-mode: both;
 }
 
 .height-screen-helper {
   min-height: calc(100vh - 80px);
+}
+
+/* Checkbox styling - use PROTANNI primary color */
+input[type='checkbox'] {
+  accent-color: var(--pt-primary);
 }
