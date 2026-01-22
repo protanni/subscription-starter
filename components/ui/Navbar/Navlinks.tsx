@@ -29,7 +29,7 @@ export default function Navlinks({ user }: NavlinksProps) {
         {user && (
           <nav className="ml-6 space-x-2 lg:block">
             <Link href="/dashboard/today" className={s.link}>
-              Dashboard
+            Today
             </Link>
             <Link href="/dashboard/inbox" className={s.link}>
               Inbox
