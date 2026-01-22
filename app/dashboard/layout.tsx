@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import { getSubscription, getUser } from '@/utils/supabase/queries';
+import { DashboardShell } from './_components/dashboard-shell';
 
 export default async function DashboardLayout({
-  children,
+  children
 }: {
   children: React.ReactNode;
 }) {
@@ -11,7 +12,7 @@ export default async function DashboardLayout({
 
   const [user, subscription] = await Promise.all([
     getUser(supabase),
-    getSubscription(supabase),
+    getSubscription(supabase)
   ]);
 
   if (!user) {
@@ -25,9 +26,5 @@ export default async function DashboardLayout({
     redirect('/pricing?paywall=1');
   }
 
-  return (
-    <div className="min-h-screen">
-      {children}
-    </div>
-  );
+  return <DashboardShell>{children}</DashboardShell>;
 }
