@@ -15,7 +15,7 @@ export default async function DashboardLayout({
     redirect('/signin?redirectTo=/dashboard');
   }
 
-  const profile = await getProfile(supabase);
+  const profile = await getProfile(supabase, user.id);
   const isPaid = profile?.is_paid === true;
 
   if (!isPaid) {
