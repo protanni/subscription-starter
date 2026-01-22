@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Send } from 'lucide-react';
 
 /**
  * CreateTaskForm
@@ -39,19 +40,21 @@ export function CreateTaskForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-md border p-4 flex gap-2">
+    <form onSubmit={onSubmit} className="relative">
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="flex-1 rounded-md border px-3 py-2"
+        className="w-full rounded-md border px-3 py-2 pr-10"
         placeholder="New task…"
         disabled={isPending}
       />
       <button
-        disabled={isPending}
-        className="rounded-md bg-gray-700 px-3 py-2 text-white disabled:opacity-60 hover:bg-gray-600"
+        type="submit"
+        disabled={isPending || !title.trim()}
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        title="Add task"
       >
-        {isPending ? '...' : 'Add'}
+        <Send className="h-4 w-4" />
       </button>
     </form>
   );
