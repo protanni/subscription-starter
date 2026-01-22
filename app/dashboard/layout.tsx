@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import { getSubscription, getUser } from '@/utils/supabase/queries';
+import { getUser, getProfile } from '@/utils/supabase/queries';
 import { DashboardShell } from './_components/dashboard-shell';
 
 export default async function DashboardLayout({
@@ -10,19 +10,15 @@ export default async function DashboardLayout({
 }) {
   const supabase = createClient();
 
-  const [user, subscription] = await Promise.all([
-    getUser(supabase),
-    getSubscription(supabase)
-  ]);
-
+  const user = await getUser(supabase);
   if (!user) {
     redirect('/signin?redirectTo=/dashboard');
   }
 
-  const status = subscription?.status ?? null;
-  const isActive = status === 'active' || status === 'trialing';
+  const profile = await getProfile(supabase);
+  const isPaid = profile?.is_paid === true;
 
-  if (!isActive) {
+  if (!isPaid) {
     redirect('/pricing?paywall=1');
   }
 
