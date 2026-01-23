@@ -6,13 +6,15 @@ import { usePathname } from 'next/navigation';
 const nav = [
   { href: '/dashboard/today', label: 'Today' },
   { href: '/dashboard/inbox', label: 'Inbox' },
-  { href: '/dashboard/tasks', label: 'Tasks' }
+  { href: '/dashboard/tasks', label: 'Tasks' },
+  { href: '/dashboard/habits', label: 'Habits' }
 ];
 
 function getPageTitle(pathname: string) {
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/today')) return 'Today';
   if (pathname.startsWith('/dashboard/inbox')) return 'Inbox';
   if (pathname.startsWith('/dashboard/tasks')) return 'Tasks';
+  if (pathname.startsWith('/dashboard/habits')) return 'Habits';
   return 'Dashboard';
 }
 

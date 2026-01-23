@@ -1,5 +1,7 @@
 // app/dashboard/today/page.tsx
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { TodayHabits } from '@/components/dashboard/today-habits';
+import { MoodCheckin } from '@/components/dashboard/mood-checkin';
 
 export default async function TodayPage() {
   const supabase = createSupabaseServerClient();
@@ -7,6 +9,9 @@ export default async function TodayPage() {
   const user = userData.user;
 
   if (!user) return null;
+
+  // Get UTC date string (YYYY-MM-DD)
+  const today = new Date().toISOString().slice(0, 10);
 
   // View `v_today_summary` is expected to exist in your DB.
   // It aggregates today's key KPIs (tasks due, habits logged, mood, events count).
@@ -16,9 +21,49 @@ export default async function TodayPage() {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  // NOTE: This uses UTC boundaries. If you want user-local day boundaries later,
-  // store user's timezone in `profiles.locale/timezone` and compute ranges accordingly.
-  const today = new Date().toISOString().slice(0, 10);
+  // Fetch open tasks (status = 'todo')
+  const { data: openTasks } = await supabase
+    .from('tasks')
+    .select('id,title,status')
+    .eq('user_id', user.id)
+    .eq('is_deleted', false)
+    .eq('status', 'todo')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  // Fetch active habits with today's completion state
+  const { data: habits, error: habitsError } = await supabase
+    .from('habits')
+    .select('id,name,is_active,created_at')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  const habitIds = habits?.map((h) => h.id) ?? [];
+  const { data: logs } =
+    habitIds.length > 0
+      ? await supabase
+          .from('habit_logs')
+          .select('habit_id')
+          .eq('user_id', user.id)
+          .eq('log_date', today)
+          .in('habit_id', habitIds)
+      : { data: null, error: null };
+
+  const completedIds = new Set(logs?.map((log) => log.habit_id) ?? []);
+  const habitsWithState = (habits ?? []).map((habit) => ({
+    id: habit.id,
+    name: habit.name,
+    done_today: completedIds.has(habit.id),
+  }));
+
+  // Fetch today's mood check-in
+  const { data: moodCheckin } = await supabase
+    .from('mood_checkins')
+    .select('id,mood,note,checkin_date')
+    .eq('user_id', user.id)
+    .eq('checkin_date', today)
+    .maybeSingle();
 
   const { data: events } = await supabase
     .from('calendar_events')
@@ -39,9 +84,37 @@ export default async function TodayPage() {
         <StatCard title="Events" value={summary?.events_today ?? 0} />
       </section>
 
+      {/* Open Tasks */}
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">Open Tasks</h2>
+        {!openTasks?.length ? (
+          <div className="text-sm text-muted-foreground">No open tasks.</div>
+        ) : (
+          <ul className="space-y-1">
+            {openTasks.map((task) => (
+              <li key={task.id} className="rounded-md border p-3">
+                <div className="font-medium">{task.title}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Habits for Today */}
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">Habits</h2>
+        <TodayHabits initialHabits={habitsWithState} />
+      </section>
+
+      {/* Mood Check-in */}
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">Mood</h2>
+        <MoodCheckin initialCheckin={moodCheckin} />
+      </section>
+
+      {/* Events */}
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Events</h2>
-
         {!events?.length ? (
           <div className="text-sm text-muted-foreground">No events today.</div>
         ) : (
