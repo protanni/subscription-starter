@@ -111,3 +111,8 @@ p a {
 input[type='checkbox'] {
   accent-color: var(--pt-primary);
 }
+
+/* Safe-area utility for iOS notch/home-indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
