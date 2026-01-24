@@ -19,7 +19,12 @@ import type { MoodLevel } from '@/components/ui-kit/mood-card';
 import { TodayHabits } from '@/components/dashboard/today-habits';
 import Input from '@/components/ui/Input';
 
-type HabitWithState = { id: string; name: string; done_today: boolean };
+type HabitWithState = {
+  id: string;
+  name: string;
+  done_today: boolean;
+  completedDates: string[];
+};
 type MoodCheckinRow = { id: string; mood: number; note: string | null; checkin_date: string } | null;
 type DailyFocus = { text: string | null; updatedAt: string | null };
 
@@ -227,7 +232,7 @@ export function TodayMobileView({
               <p className="text-sm text-muted-foreground">No open tasks</p>
               <Link
                 href="/dashboard/tasks"
-                className="text-xs text-emerald-700 underline underline-offset-4 font-medium mt-1 inline-block"
+                className="text-xs text-emerald-700 font-medium mt-1 inline-block hover:underline focus-visible:underline underline-offset-4"
               >
                 Add a task
               </Link>
@@ -258,7 +263,7 @@ export function TodayMobileView({
               <p className="text-sm text-muted-foreground">No habits yet</p>
               <Link
                 href="/dashboard/habits"
-                className="text-xs text-primary hover:underline mt-1 inline-block"
+                className="text-xs text-emerald-700 font-medium mt-1 inline-block hover:underline focus-visible:underline underline-offset-4"
               >
                 Add a habit
               </Link>
@@ -269,9 +274,18 @@ export function TodayMobileView({
 
       {/* Mood – Lovable-style pastel pills */}
       <motion.section variants={itemVariants} className="space-y-3">
-        <div className="space-y-1">
-          <h2 className="text-sm font-medium text-foreground">How are you feeling?</h2>
-          <p className="text-xs text-muted-foreground">Emotional signal for today</p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1">
+            <h2 className="text-sm font-medium text-foreground">How are you feeling?</h2>
+            <p className="text-xs text-muted-foreground">Emotional signal for today</p>
+          </div>
+          {selectedLevel != null && (
+            <Pencil
+              className="w-4 h-4 shrink-0 text-muted-foreground mt-0.5"
+              strokeWidth={2}
+              aria-hidden
+            />
+          )}
         </div>
         <div className="grid grid-cols-5 gap-2">
           {MOOD_LEVELS.map((level) => (

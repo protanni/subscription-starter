@@ -13,7 +13,12 @@ type Summary = {
 } | null;
 
 type OpenTask = { id: string; title: string; status: string };
-type HabitWithState = { id: string; name: string; done_today: boolean };
+type HabitWithState = {
+  id: string;
+  name: string;
+  done_today: boolean;
+  completedDates: string[];
+};
 type MoodCheckinRow = { id: string; mood: number; note: string | null; checkin_date: string } | null;
 type EventRow = {
   id: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Smile, Meh, Frown, Pencil, LucideIcon } from 'lucide-react';
+import { Smile, Meh, Frown, LucideIcon } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 export type MoodLevel = 'great' | 'good' | 'neutral' | 'low' | 'bad';
@@ -76,13 +76,6 @@ export function MoodCard({
           : 'hover:shadow-md'
       )}
     >
-      {isSelected && (
-        <Pencil
-          className="absolute top-1.5 right-1.5 w-3 h-3 text-muted-foreground opacity-70"
-          strokeWidth={2}
-          aria-hidden
-        />
-      )}
       <Icon
         className={cn(
           config.textClass,

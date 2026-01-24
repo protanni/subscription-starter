@@ -38,17 +38,38 @@ export default async function TodayPage() {
     habitIds.length > 0
       ? await supabase
           .from('habit_logs')
-          .select('habit_id')
-          .eq('user_id', user.id)
+          .select('habit_id,log_date')
           .eq('log_date', today)
           .in('habit_id', habitIds)
       : { data: null };
 
   const completedIds = new Set(logs?.map((log) => log.habit_id) ?? []);
+
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - 6);
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const { data: weeklyLogs } =
+    habitIds.length > 0
+      ? await supabase
+          .from('habit_logs')
+          .select('habit_id,log_date')
+          .gte('log_date', weekStartStr)
+          .lte('log_date', today)
+          .in('habit_id', habitIds)
+      : { data: null };
+
+  const completedByHabit = new Map<string, string[]>();
+  for (const log of weeklyLogs ?? []) {
+    const arr = completedByHabit.get(log.habit_id) ?? [];
+    arr.push(log.log_date);
+    completedByHabit.set(log.habit_id, arr);
+  }
+
   const habitsWithState = (habits ?? []).map((habit) => ({
     id: habit.id,
     name: habit.name,
     done_today: completedIds.has(habit.id),
+    completedDates: completedByHabit.get(habit.id) ?? [],
   }));
 
   const { data: moodCheckin } = await supabase
