@@ -75,7 +75,8 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
                 checked={done}
                 onChange={() => toggle(h.id)}
                 disabled={isPending}
-                className="h-4 w-4 shrink-0 rounded-full border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0"
+                aria-label={done ? `Mark ${h.name} incomplete` : `Mark ${h.name} complete`}
+                className="h-4 w-4 shrink-0 appearance-none rounded-full border-2 border-gray-300 bg-transparent checked:border-emerald-500 checked:bg-emerald-500 outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-0"
               />
               <div className="flex-1 min-w-0 space-y-1">
                 <div className={done ? 'font-medium text-muted-foreground' : 'font-medium'}>

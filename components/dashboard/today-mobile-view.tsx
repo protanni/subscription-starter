@@ -152,6 +152,8 @@ export function TodayMobileView({
 
   const selectedLevel =
     selectedMood != null ? (MOOD_TO_LEVEL[selectedMood] ?? null) : null;
+  const hasMoodToday =
+    moodCheckin != null || selectedLevel != null;
 
   return (
     <motion.div
@@ -232,7 +234,7 @@ export function TodayMobileView({
               <p className="text-sm text-muted-foreground">No open tasks</p>
               <Link
                 href="/dashboard/tasks"
-                className="text-xs text-emerald-700 font-medium mt-1 inline-block hover:underline focus-visible:underline underline-offset-4"
+                className="text-xs text-emerald-700 font-medium mt-1 inline-block no-underline hover:underline focus-visible:underline active:underline visited:no-underline underline-offset-4"
               >
                 Add a task
               </Link>
@@ -263,7 +265,7 @@ export function TodayMobileView({
               <p className="text-sm text-muted-foreground">No habits yet</p>
               <Link
                 href="/dashboard/habits"
-                className="text-xs text-emerald-700 font-medium mt-1 inline-block hover:underline focus-visible:underline underline-offset-4"
+                className="text-xs text-emerald-700 font-medium mt-1 inline-block no-underline hover:underline focus-visible:underline active:underline visited:no-underline underline-offset-4"
               >
                 Add a habit
               </Link>
@@ -279,7 +281,7 @@ export function TodayMobileView({
             <h2 className="text-sm font-medium text-foreground">How are you feeling?</h2>
             <p className="text-xs text-muted-foreground">Emotional signal for today</p>
           </div>
-          {selectedLevel != null && (
+          {hasMoodToday && (
             <Pencil
               className="w-4 h-4 shrink-0 text-muted-foreground mt-0.5"
               strokeWidth={2}
