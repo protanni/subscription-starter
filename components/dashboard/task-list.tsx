@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
+import { cn } from '@/utils/cn';
+import { ListCard, MutedListCard } from '@/components/ui-kit/content-card';
+import { ProtanniCheckbox } from '@/components/ui-kit/protanni-checkbox';
+import {
+  useTasksCategory,
+  TASKS_CATEGORIES,
+} from '@/components/dashboard/tasks-category-context';
 
 type Task = {
   id: string;
@@ -13,54 +20,45 @@ type Task = {
   completed_at: string | null;
 };
 
-type ViewType = 'todo' | 'done';
-
 /**
  * TaskList
- * - Client Component for toggling tasks (done/undo) and deleting.
- * - Calls POST /api/tasks/toggle and POST /api/tasks/delete
+ * - Category pills (visual only, no filtering).
+ * - Open tasks in a card list; completed in a separate "COMPLETED" section.
+ * - Round checkboxes; toggle done/undo and delete.
  */
 export function TaskList({
-  initialTasks,
-  currentView
+  openTasks: initialOpen,
+  completedTasks: initialCompleted,
 }: {
-  initialTasks: Task[];
-  currentView: ViewType;
+  openTasks: Task[];
+  completedTasks: Task[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [tasks, setTasks] = useState(initialTasks);
+  const { category, setCategory, emptyMessage } = useTasksCategory();
+  const [openTasks, setOpenTasks] = useState(initialOpen);
+  const [completedTasks, setCompletedTasks] = useState(initialCompleted);
 
-  // Sync local state when initialTasks changes (e.g., when switching views)
   useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
+    setOpenTasks(initialOpen);
+    setCompletedTasks(initialCompleted);
+  }, [initialOpen, initialCompleted]);
 
-  // Toggle between todo and done views
-  function switchView(view: ViewType) {
-    if (view === 'done') {
-      router.push('/dashboard/tasks?view=done');
-    } else {
-      router.push('/dashboard/tasks');
-    }
-  }
-
-  async function toggle(taskId: string) {
+  async function toggle(taskId: string, currentlyDone: boolean) {
     const res = await fetch('/api/tasks/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ taskId }),
     });
-
     if (!res.ok) {
       console.error(await res.text());
       return;
     }
-
-    // Optimistically remove from current list
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-
-    // Refresh to get updated data
+    if (currentlyDone) {
+      setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } else {
+      setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
+    }
     startTransition(() => router.refresh());
   }
 
@@ -70,97 +68,127 @@ export function TaskList({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ taskId }),
     });
-
     if (!res.ok) {
       console.error(await res.text());
       return;
     }
-
-    // Optimistically remove from current list
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-
-    // Refresh to get updated data
+    setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
     startTransition(() => router.refresh());
   }
 
+  const noOpen = openTasks.length === 0;
+  const noCompleted = completedTasks.length === 0;
+
   return (
-    <div className="space-y-4">
-      {/* View Toggle */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => switchView('todo')}
-          className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
-            currentView === 'todo'
-              ? 'bg-gray-200 text-gray-900'
-              : 'bg-white text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          To do
-        </button>
-        <button
-          onClick={() => switchView('done')}
-          className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
-            currentView === 'done'
-              ? 'bg-gray-200 text-gray-900'
-              : 'bg-white text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          Done
-        </button>
+    <div className="space-y-6">
+      {/* Category pills – visual only */}
+      <div className="rounded-lg bg-muted/50 p-1.5 flex flex-wrap gap-1">
+        {TASKS_CATEGORIES.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setCategory(value)}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              category === value
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground/80'
+            )}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* Empty State */}
-      {!tasks.length && (
-        <div className="rounded-md border p-4 text-sm text-muted-foreground">
-          {currentView === 'done'
-            ? 'No completed tasks yet.'
-            : 'No tasks yet. Create your first task above.'}
+      {/* Open tasks */}
+      {noOpen ? (
+        <div className="flex flex-col items-center justify-center py-16 space-y-4">
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+            <Plus className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground text-center">{emptyMessage}</p>
         </div>
+      ) : (
+        <ListCard>
+          {openTasks.map((t) => (
+            <TaskRow
+              key={t.id}
+              task={t}
+              isDone={false}
+              isPending={isPending}
+              onToggle={() => toggle(t.id, false)}
+              onDelete={() => deleteTask(t.id)}
+            />
+          ))}
+        </ListCard>
       )}
 
-      {/* Tasks List */}
-      {tasks.length > 0 && (
-        <ul className="space-y-1">
-          {tasks.map((t) => {
-            const done = t.status === 'done';
-            return (
-              <li key={t.id} className="rounded-md border p-3">
-                <div className="flex items-center gap-3">
-                  {/* Checkbox */}
-                  <input
-                    type="checkbox"
-                    checked={done}
-                    onChange={() => toggle(t.id)}
-                    disabled={isPending}
-                    className="h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-primary focus:ring-offset-0"
-                  />
+      {/* COMPLETED section */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
+          COMPLETED
+        </h3>
+        {noCompleted ? (
+          <div className="rounded-xl border border-border/30 bg-card/60 py-8 flex flex-col items-center justify-center">
+            <p className="text-sm text-muted-foreground">No completed tasks yet.</p>
+          </div>
+        ) : (
+          <MutedListCard className="shadow-sm">
+            {completedTasks.map((t) => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                isDone
+                isPending={isPending}
+                onToggle={() => toggle(t.id, true)}
+                onDelete={() => deleteTask(t.id)}
+              />
+            ))}
+          </MutedListCard>
+        )}
+      </div>
+    </div>
+  );
+}
 
-                  {/* Task Text */}
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className={`font-medium ${
-                        done ? 'line-through opacity-70' : ''
-                      }`}
-                    >
-                      {t.title}
-                    </div>
-                  </div>
-
-                  {/* Trash Icon */}
-                  <button
-                    onClick={() => deleteTask(t.id)}
-                    disabled={isPending}
-                    className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-40"
-                    title="Delete task"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+function TaskRow({
+  task,
+  isDone,
+  isPending,
+  onToggle,
+  onDelete,
+}: {
+  task: Task;
+  isDone: boolean;
+  isPending: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 p-4',
+        isDone && 'text-muted-foreground'
       )}
+    >
+      <ProtanniCheckbox
+        checked={isDone}
+        onChange={onToggle}
+        disabled={isPending}
+      />
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium">{task.title}</span>
+      </div>
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={isPending}
+        className="p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-40 transition-colors"
+        title="Delete task"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
     </div>
   );
 }

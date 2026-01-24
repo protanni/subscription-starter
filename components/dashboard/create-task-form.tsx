@@ -2,18 +2,21 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { useTasksCategory } from '@/components/dashboard/tasks-category-context';
 
 /**
  * CreateTaskForm
  * - Client Component used on the Tasks page.
  * - Calls POST /api/tasks to create a task.
- * - Uses router.refresh() to re-fetch Server Component data (no full reload).
+ * - Uses router.refresh() to re-fetch Server Component data.
+ * - Placeholder adapts to selected category (visual only).
  */
 export function CreateTaskForm() {
   const [title, setTitle] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { placeholder } = useTasksCategory();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,33 +31,30 @@ export function CreateTaskForm() {
     });
 
     if (!res.ok) {
-      // MVP-level error handling. Later we can replace with a toast system.
       console.error(await res.text());
       return;
     }
 
     setTitle('');
-
-    // Re-fetch tasks list from the server without a full page reload.
     startTransition(() => router.refresh());
   }
 
   return (
-    <form onSubmit={onSubmit} className="relative">
+    <form onSubmit={onSubmit} className="relative w-full">
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full rounded-md border px-3 py-2 pr-10"
-        placeholder="New task…"
+        className="w-full rounded-xl border border-border/60 bg-card px-4 py-3 pr-12 text-sm text-foreground placeholder:text-muted-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50"
+        placeholder={placeholder}
         disabled={isPending}
       />
       <button
         type="submit"
         disabled={isPending || !title.trim()}
-        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         title="Add task"
       >
-        <Send className="h-4 w-4" />
+        <Plus className="h-5 w-5" />
       </button>
     </form>
   );
