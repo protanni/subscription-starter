@@ -1,5 +1,6 @@
 'use client';
 
+import type { MoodCheckinRow } from '@/components/dashboard/today-types';
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -26,13 +27,6 @@ type HabitWithState = {
   done_today: boolean;
   completedDates: string[];
 };
-
-type MoodCheckinRow = {
-  id: string;
-  mood: MoodLevel;
-  note: string | null;
-  checkin_date: string;
-} | null;
 
 type DailyFocus = { text: string | null; updatedAt: string | null };
 

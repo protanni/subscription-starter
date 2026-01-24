@@ -1,5 +1,6 @@
 'use client';
 
+import type { MoodCheckinRow } from '@/components/dashboard/today-types';
 import { useState, useEffect } from 'react';
 import { TodayHabits } from '@/components/dashboard/today-habits';
 import { MoodCheckin } from '@/components/dashboard/mood-checkin';
@@ -19,7 +20,6 @@ type HabitWithState = {
   done_today: boolean;
   completedDates: string[];
 };
-type MoodCheckinRow = { id: string; mood: number; note: string | null; checkin_date: string } | null;
 type EventRow = {
   id: string;
   title: string;
