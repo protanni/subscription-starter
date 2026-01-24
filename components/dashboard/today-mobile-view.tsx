@@ -14,6 +14,7 @@ import {
   SectionHeader,
   MoodCard,
   MOOD_LEVELS,
+  ProtanniCheckbox,
 } from '@/components/ui-kit';
 import type { MoodLevel } from '@/components/ui-kit/mood-card';
 import { TodayHabits } from '@/components/dashboard/today-habits';
@@ -25,23 +26,15 @@ type HabitWithState = {
   done_today: boolean;
   completedDates: string[];
 };
-type MoodCheckinRow = { id: string; mood: number; note: string | null; checkin_date: string } | null;
-type DailyFocus = { text: string | null; updatedAt: string | null };
 
-const LEVEL_TO_MOOD: Record<MoodLevel, number> = {
-  great: 5,
-  good: 4,
-  neutral: 3,
-  low: 2,
-  bad: 1,
-};
-const MOOD_TO_LEVEL: Record<number, MoodLevel> = {
-  5: 'great',
-  4: 'good',
-  3: 'neutral',
-  2: 'low',
-  1: 'bad',
-};
+type MoodCheckinRow = {
+  id: string;
+  mood: MoodLevel;
+  note: string | null;
+  checkin_date: string;
+} | null;
+
+type DailyFocus = { text: string | null; updatedAt: string | null };
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -89,7 +82,13 @@ export function TodayMobileView({
 }: TodayMobileViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [selectedMood, setSelectedMood] = useState<number | null>(moodCheckin?.mood ?? null);
+
+  const [selectedMood, setSelectedMood] = useState<MoodLevel | null>(() => {
+    const raw = moodCheckin?.mood;
+    return typeof raw === 'string' && MOOD_LEVELS.includes(raw as MoodLevel)
+      ? (raw as MoodLevel)
+      : null;
+  });
   const [openTasks, setOpenTasks] = useState(initialOpenTasks);
   const [isEditingFocus, setIsEditingFocus] = useState(false);
   const [focusInput, setFocusInput] = useState('');
@@ -139,21 +138,33 @@ export function TodayMobileView({
   }
 
   async function selectMood(level: MoodLevel) {
-    const mood = LEVEL_TO_MOOD[level];
+    if (isPending) return;
+
+    const prev = selectedMood;
+
+    // Optimistic UI
+    setSelectedMood(level);
+
     const res = await fetch('/api/mood', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mood }),
+      body: JSON.stringify({ mood: level }),
     });
-    if (!res.ok) return;
-    setSelectedMood(mood);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error('POST /api/mood failed', res.status, err);
+      setSelectedMood(prev);
+      return;
+    }
+
     startTransition(() => router.refresh());
   }
 
-  const selectedLevel =
-    selectedMood != null ? (MOOD_TO_LEVEL[selectedMood] ?? null) : null;
-  const hasMoodToday =
-    moodCheckin != null || selectedLevel != null;
+  const selectedLevel = selectedMood;
+
+  // Show pencil if we have a mood for today (server checkin exists OR selectedMood not null)
+  const hasMoodToday = moodCheckin != null || selectedMood != null;
 
   return (
     <motion.div
@@ -217,12 +228,10 @@ export function TodayMobileView({
           <ListCard>
             {openTasks.map((task) => (
               <div key={task.id} className="flex items-center gap-3 p-4">
-                <input
-                  type="checkbox"
+                <ProtanniCheckbox
                   checked={false}
                   onChange={() => toggleTask(task.id)}
                   disabled={isPending}
-                  className="h-4 w-4 rounded-full border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0"
                 />
                 <span className="text-sm text-foreground">{task.title}</span>
               </div>
@@ -289,6 +298,7 @@ export function TodayMobileView({
             />
           )}
         </div>
+
         <div className="grid grid-cols-5 gap-2">
           {MOOD_LEVELS.map((level) => (
             <MoodCard
