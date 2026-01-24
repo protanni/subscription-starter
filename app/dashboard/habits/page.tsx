@@ -2,6 +2,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { CreateHabitForm } from '@/components/dashboard/create-habit-form';
 import { HabitList } from '@/components/dashboard/habit-list';
+import { HabitsMobileView } from '@/components/dashboard/habits-mobile-view';
 
 export default async function HabitsPage() {
   // Server Component: fetch initial habits list on the server.
@@ -55,15 +56,34 @@ export default async function HabitsPage() {
     done_today: completedIds.has(habit.id),
   }));
 
+  const completedToday = habitsWithState.filter((h) => h.done_today).length;
+
+  const habitForm = <CreateHabitForm />;
+  const habitList = <HabitList initialHabits={habitsWithState} />;
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Habits</h1>
+    <>
+      {/* Mobile View - hidden on md+ */}
+      <div className="md:hidden">
+        <HabitsMobileView
+          totalHabits={habitsWithState.length}
+          completedToday={completedToday}
+        >
+          {habitForm}
+          {habitList}
+        </HabitsMobileView>
+      </div>
 
-      {/* Create a habit */}
-      <CreateHabitForm />
+      {/* Desktop View - hidden on mobile */}
+      <div className="hidden md:block space-y-6">
+        <h1 className="text-2xl font-semibold">Habits</h1>
 
-      {/* Client component: toggles done / deletes without reload */}
-      <HabitList initialHabits={habitsWithState} />
-    </div>
+        {/* Create a habit */}
+        {habitForm}
+
+        {/* Client component: toggles done / deletes without reload */}
+        {habitList}
+      </div>
+    </>
   );
 }
