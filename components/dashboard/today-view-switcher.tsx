@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { TodayHabits } from '@/components/dashboard/today-habits';
 import { MoodCheckin } from '@/components/dashboard/mood-checkin';
 import { TodayMobileView } from '@/components/dashboard/today-mobile-view';
@@ -23,6 +22,8 @@ type EventRow = {
   ends_at: string | null;
   all_day: boolean;
 };
+
+type DailyFocus = { text: string | null; updatedAt: string | null };
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(true);
@@ -132,12 +133,14 @@ export function TodayViewSwitcher({
   events,
   habitsWithState,
   moodCheckin,
+  dailyFocus,
 }: {
   summary: Summary;
   openTasks: OpenTask[];
   events: EventRow[];
   habitsWithState: HabitWithState[];
   moodCheckin: MoodCheckinRow;
+  dailyFocus: DailyFocus;
 }) {
   const isMobile = useMediaQuery('(max-width: 767px)');
 
@@ -147,6 +150,7 @@ export function TodayViewSwitcher({
         openTasks={openTasks}
         habitsWithState={habitsWithState}
         moodCheckin={moodCheckin}
+        dailyFocus={dailyFocus}
       />
     );
   }

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil } from 'lucide-react';
 import {
   containerVariants,
   itemVariants,
@@ -17,9 +17,11 @@ import {
 } from '@/components/ui-kit';
 import type { MoodLevel } from '@/components/ui-kit/mood-card';
 import { TodayHabits } from '@/components/dashboard/today-habits';
+import Input from '@/components/ui/Input';
 
 type HabitWithState = { id: string; name: string; done_today: boolean };
 type MoodCheckinRow = { id: string; mood: number; note: string | null; checkin_date: string } | null;
+type DailyFocus = { text: string | null; updatedAt: string | null };
 
 const LEVEL_TO_MOOD: Record<MoodLevel, number> = {
   great: 5,
@@ -51,10 +53,22 @@ function formatDate(): string {
   });
 }
 
+function isFocusToday(updatedAt: string | null): boolean {
+  if (!updatedAt) return false;
+  const d = new Date(updatedAt);
+  const today = new Date();
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  );
+}
+
 export interface TodayMobileViewProps {
   openTasks: Array<{ id: string; title: string; status: string }>;
   habitsWithState: HabitWithState[];
   moodCheckin: MoodCheckinRow;
+  dailyFocus: DailyFocus;
 }
 
 /**
@@ -63,17 +77,61 @@ export interface TodayMobileViewProps {
  * No metrics grid, no events.
  */
 export function TodayMobileView({
-  openTasks,
+  openTasks: initialOpenTasks,
   habitsWithState,
   moodCheckin,
+  dailyFocus,
 }: TodayMobileViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedMood, setSelectedMood] = useState<number | null>(moodCheckin?.mood ?? null);
+  const [openTasks, setOpenTasks] = useState(initialOpenTasks);
+  const [isEditingFocus, setIsEditingFocus] = useState(false);
+  const [focusInput, setFocusInput] = useState('');
 
   const greeting = getGreeting();
   const dateString = formatDate();
   const completedHabits = habitsWithState.filter((h) => h.done_today).length;
+
+  const hasFocusToday =
+    isFocusToday(dailyFocus.updatedAt) && (dailyFocus.text ?? '').trim().length > 0;
+  const currentFocusText = hasFocusToday ? (dailyFocus.text ?? '').trim() : '';
+
+  async function saveDailyFocus() {
+    const text = focusInput.trim();
+    const res = await fetch('/api/profile/daily-focus', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) return;
+    setIsEditingFocus(false);
+    startTransition(() => router.refresh());
+  }
+
+  function handleStartEditFocus() {
+    setFocusInput(currentFocusText);
+    setIsEditingFocus(true);
+  }
+
+  function handleFocusKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') saveDailyFocus();
+  }
+
+  useEffect(() => {
+    setOpenTasks(initialOpenTasks);
+  }, [initialOpenTasks]);
+
+  async function toggleTask(taskId: string) {
+    const res = await fetch('/api/tasks/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId }),
+    });
+    if (!res.ok) return;
+    setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
+    startTransition(() => router.refresh());
+  }
 
   async function selectMood(level: MoodLevel) {
     const mood = LEVEL_TO_MOOD[level];
@@ -103,26 +161,62 @@ export function TodayMobileView({
         systemLabel="Daily Control Layer"
       />
 
-      {/* Daily Focus – placeholder only */}
+      {/* Daily Focus – Lovable UX + Supabase persistence */}
       <motion.section variants={itemVariants}>
         <ContentCard label="Daily Focus">
-          <button
-            type="button"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-          >
-            <Plus className="w-4 h-4" />
-            Set daily focus
-          </button>
+          {!hasFocusToday && !isEditingFocus ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFocusInput('');
+                setIsEditingFocus(true);
+              }}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+            >
+              <Plus className="w-4 h-4" />
+              Set daily focus
+            </button>
+          ) : isEditingFocus ? (
+            <Input
+              variant="light"
+              type="text"
+              placeholder="What matters most today?"
+              value={focusInput}
+              onChange={(v) => setFocusInput(v)}
+              onBlur={saveDailyFocus}
+              onKeyDown={handleFocusKeyDown}
+              autoFocus
+            />
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm text-foreground leading-relaxed">{currentFocusText}</p>
+              <button
+                type="button"
+                onClick={handleStartEditFocus}
+                className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Edit focus"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </ContentCard>
       </motion.section>
 
-      {/* Open Tasks */}
+      {/* Open Tasks – circular checkbox, toggle complete -> disappear */}
       <motion.section variants={itemVariants} className="space-y-3">
         <SectionHeader title="Open Tasks" viewAllHref="/dashboard/tasks" viewAllLabel="View all" />
         {openTasks.length > 0 ? (
           <ListCard>
             {openTasks.map((task) => (
-              <div key={task.id} className="p-4">
+              <div key={task.id} className="flex items-center gap-3 p-4">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  onChange={() => toggleTask(task.id)}
+                  disabled={isPending}
+                  className="h-4 w-4 rounded-full border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0"
+                />
                 <span className="text-sm text-foreground">{task.title}</span>
               </div>
             ))}
@@ -133,7 +227,7 @@ export function TodayMobileView({
               <p className="text-sm text-muted-foreground">No open tasks</p>
               <Link
                 href="/dashboard/tasks"
-                className="text-xs text-primary hover:underline mt-1 inline-block"
+                className="text-xs text-emerald-700 underline underline-offset-4 font-medium mt-1 inline-block"
               >
                 Add a task
               </Link>

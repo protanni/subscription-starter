@@ -66,6 +66,17 @@ export default async function TodayPage() {
     .lt('starts_at', `${today}T23:59:59.999Z`)
     .order('starts_at', { ascending: true });
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('daily_focus_text,daily_focus_updated_at')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const dailyFocus = {
+    text: profile?.daily_focus_text ?? null,
+    updatedAt: profile?.daily_focus_updated_at ?? null,
+  };
+
   return (
     <TodayViewSwitcher
       summary={summary}
@@ -73,6 +84,7 @@ export default async function TodayPage() {
       events={events ?? []}
       habitsWithState={habitsWithState}
       moodCheckin={moodCheckin}
+      dailyFocus={dailyFocus}
     />
   );
 }
