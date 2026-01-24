@@ -11,7 +11,7 @@ import { MobileBottomNav } from './mobile-bottom-nav';
  */
 export function MobileShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background md:hidden">
+    <div className="min-h-screen bg-background">
       {/* Content container - matches AppLayout from core-clarity */}
       <main className="container max-w-lg mx-auto pb-24 pt-safe px-4">
         {children}

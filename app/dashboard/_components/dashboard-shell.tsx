@@ -40,15 +40,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
 
   if (isMobile) {
-    return (
-      <div className="md:hidden">
-        <MobileShell>{children}</MobileShell>
-      </div>
-    );
+    return <MobileShell>{children}</MobileShell>;
   }
 
   return (
-    <div className="hidden md:flex min-h-screen">
+    <div className="flex min-h-screen">
         {/* Sidebar */}
         <aside className="w-64 shrink-0 bg-white border-r border-black/5">
           <div className="h-16 flex items-center justify-center px-4">
