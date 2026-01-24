@@ -66,16 +66,12 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
                 checked={done}
                 onChange={() => toggle(h.id)}
                 disabled={isPending}
-                className="h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-primary focus:ring-offset-0"
+                className="h-4 w-4 rounded-full border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0"
               />
 
               {/* Habit Name */}
               <div className="flex-1 min-w-0">
-                <div
-                  className={`font-medium ${
-                    done ? 'line-through opacity-70' : ''
-                  }`}
-                >
+                <div className={done ? 'font-medium text-muted-foreground' : 'font-medium'}>
                   {h.name}
                 </div>
               </div>

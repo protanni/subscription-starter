@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Smile, Meh, Frown, LucideIcon } from 'lucide-react';
+import { Smile, Meh, Frown, Pencil, LucideIcon } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 export type MoodLevel = 'great' | 'good' | 'neutral' | 'low' | 'bad';
@@ -68,14 +68,21 @@ export function MoodCard({
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
       className={cn(
-        'w-full flex flex-col items-center justify-center rounded-xl transition-all duration-200',
+        'relative w-full flex flex-col items-center justify-center rounded-xl transition-all duration-200',
         config.bgClass,
         size === 'large' ? 'p-4 gap-2' : 'p-3 gap-1.5',
         isSelected
-          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg'
+          ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-background shadow-lg'
           : 'hover:shadow-md'
       )}
     >
+      {isSelected && (
+        <Pencil
+          className="absolute top-1.5 right-1.5 w-3 h-3 text-muted-foreground opacity-70"
+          strokeWidth={2}
+          aria-hidden
+        />
+      )}
       <Icon
         className={cn(
           config.textClass,
