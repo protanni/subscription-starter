@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
+import { ProtanniCheckbox } from '@/components/ui-kit';
 
 type Habit = {
   id: string;
@@ -86,13 +87,10 @@ export function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
             return (
               <li key={h.id} className="rounded-md border p-3">
                 <div className="flex items-center gap-3">
-                  {/* Checkbox */}
-                  <input
-                    type="checkbox"
+                  <ProtanniCheckbox
                     checked={done}
                     onChange={() => toggle(h.id)}
                     disabled={isPending}
-                    className="h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-primary focus:ring-offset-0"
                   />
 
                   {/* Habit Name */}

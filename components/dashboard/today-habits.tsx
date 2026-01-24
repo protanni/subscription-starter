@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ProgressDots } from '@/components/ui-kit';
+import { ProgressDots, ProtanniCheckbox } from '@/components/ui-kit';
 
 type Habit = {
   id: string;
@@ -70,13 +70,11 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
         return (
           <li key={h.id} className="rounded-md border p-3">
             <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
+              <ProtanniCheckbox
                 checked={done}
                 onChange={() => toggle(h.id)}
                 disabled={isPending}
                 aria-label={done ? `Mark ${h.name} incomplete` : `Mark ${h.name} complete`}
-                className="h-4 w-4 shrink-0 appearance-none rounded-full border-2 border-gray-300 bg-transparent checked:border-emerald-500 checked:bg-emerald-500 outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-0"
               />
               <div className="flex-1 min-w-0 space-y-1">
                 <div className={done ? 'font-medium text-muted-foreground' : 'font-medium'}>
