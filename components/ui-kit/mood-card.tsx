@@ -68,11 +68,11 @@ export function MoodCard({
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
       className={cn(
-        'relative w-full flex flex-col items-center justify-center rounded-xl transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'relative w-full flex flex-col items-center justify-center rounded-xl transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         config.bgClass,
         size === 'large' ? 'p-4 gap-2' : 'p-3 gap-1.5',
         isSelected
-          ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-background shadow-lg'
+          ? 'ring-2 ring-[hsl(var(--ring))] ring-offset-2 ring-offset-background shadow-lg'
           : 'hover:shadow-md'
       )}
     >
