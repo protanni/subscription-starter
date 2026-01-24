@@ -141,7 +141,7 @@ export function ReviewMobileView({
       {/* Coming Soon Notice */}
       <motion.div
         variants={itemVariants}
-        className="rounded-lg border border-dashed border-border/50 bg-muted/30 p-4 text-center"
+        className="rounded-xl border border-dashed border-border/50 bg-muted/30 p-5 text-center"
       >
         <p className="text-xs text-muted-foreground">
           Full weekly review with data insights coming soon

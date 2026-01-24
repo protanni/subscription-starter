@@ -35,8 +35,7 @@ export function HabitsMobileView({
         subtitle={`${completedToday} of ${totalHabits} completed today`}
       />
 
-      {/* Children contains CreateHabitForm and HabitList with their existing logic */}
-      <motion.div variants={itemVariants} className="space-y-4">
+      <motion.div variants={itemVariants} className="space-y-6">
         {children}
       </motion.div>
     </motion.div>

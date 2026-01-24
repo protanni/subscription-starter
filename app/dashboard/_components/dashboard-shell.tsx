@@ -44,11 +44,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background text-foreground">
         {/* Sidebar */}
-        <aside className="w-64 shrink-0 bg-white border-r border-black/5">
+        <aside className="w-64 shrink-0 bg-card border-r border-border/50">
           <div className="h-16 flex items-center justify-center px-4">
-            <span className="text-[13px] font-semibold tracking-[0.22em] text-[#062323]">
+            <span className="text-[13px] font-semibold tracking-[0.22em] text-foreground">
               PROTANNI
             </span>
           </div>
@@ -62,10 +62,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <Link
                       href={item.href}
                       className={[
-                        'block rounded-md px-3 py-2 text-sm',
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
                         isActive
-                          ? 'bg-[#F8FCFB] text-[#062323] ring-1 ring-black/5'
-                          : 'text-[#2B4040] hover:bg-[#F8FCFB] hover:text-[#062323]'
+                          ? 'bg-muted/50 text-foreground ring-1 ring-border/50'
+                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                       ].join(' ')}
                     >
                       {item.label}
@@ -78,10 +78,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Main */}
-        <div className="flex-1 min-w-0">
-          {/* Topbar */}
-          <header className="h-16 flex items-center px-6 bg-white border-b border-black/5">
-            <h1 className="text-base font-semibold text-[#062323]">{title}</h1>
+        <div className="flex-1 min-w-0 bg-background">
+          <header className="h-16 flex items-center px-6 bg-card border-b border-border/50">
+            <h1 className="text-base font-semibold text-foreground">{title}</h1>
           </header>
 
           <main className="px-6 py-6">{children}</main>

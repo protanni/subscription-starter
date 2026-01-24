@@ -41,8 +41,8 @@ export default async function InboxPage({
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Inbox</h1>
+    <div className="space-y-6 bg-background text-foreground">
+      <h1 className="text-2xl font-semibold text-foreground">Inbox</h1>
 
       {/* Quick Capture: the fastest way to get items out of your head and into the system */}
       {view === 'inbox' && <CreateCaptureForm />}

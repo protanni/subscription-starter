@@ -38,27 +38,30 @@ export function CreateCaptureForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-md border p-3">
-      <label className="text-sm font-medium">Quick Capture</label>
+    <form
+      onSubmit={onSubmit}
+      className="rounded-xl border border-border/50 bg-card p-5 shadow-card"
+    >
+      <label className="text-sm font-medium text-foreground">Quick Capture</label>
 
-      <div className="mt-2 flex gap-2">
+      <div className="mt-3 flex gap-2">
         <input
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Write anything… (press Enter)"
-          className="w-full rounded-md border px-3 py-2"
+          className="flex-1 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50"
           disabled={isPending}
         />
         <button
           type="submit"
-          className="rounded-md border px-4 py-2 hover:bg-gray-50"
+          className="rounded-xl border border-border/50 bg-card px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/50 disabled:opacity-50 transition-colors shadow-sm"
           disabled={isPending}
         >
           Add
         </button>
       </div>
 
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-3 text-xs text-muted-foreground">
         Capture first. Process later.
       </p>
     </form>

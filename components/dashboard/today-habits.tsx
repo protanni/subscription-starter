@@ -59,37 +59,38 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
 
   if (!habits.length) {
     return (
-      <div className="text-sm text-muted-foreground">No habits set up yet.</div>
+      <div className="py-4 text-sm text-muted-foreground">No habits set up yet.</div>
     );
   }
 
   return (
-    <ul className="space-y-1">
+    <div className="divide-y divide-border/50">
       {habits.map((h) => {
         const done = h.done_today;
         return (
-          <li key={h.id} className="rounded-md border p-3">
-            <div className="flex items-center gap-3">
-              <ProtanniCheckbox
-                checked={done}
-                onChange={() => toggle(h.id)}
-                disabled={isPending}
-                aria-label={done ? `Mark ${h.name} incomplete` : `Mark ${h.name} complete`}
-              />
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className={done ? 'font-medium text-muted-foreground' : 'font-medium'}>
-                  {h.name}
-                </div>
-                <ProgressDots
-                  completedDates={h.completedDates ?? []}
-                  days={7}
-                  className="shrink-0"
-                />
+          <div
+            key={h.id}
+            className={`flex items-center gap-3 p-4 ${done ? 'text-muted-foreground' : ''}`}
+          >
+            <ProtanniCheckbox
+              checked={done}
+              onChange={() => toggle(h.id)}
+              disabled={isPending}
+              aria-label={done ? `Mark ${h.name} incomplete` : `Mark ${h.name} complete`}
+            />
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className={done ? 'font-medium text-muted-foreground' : 'font-medium text-sm'}>
+                {h.name}
               </div>
+              <ProgressDots
+                completedDates={h.completedDates ?? []}
+                days={7}
+                className="shrink-0"
+              />
             </div>
-          </li>
+          </div>
         );
       })}
-    </ul>
+    </div>
   );
 }

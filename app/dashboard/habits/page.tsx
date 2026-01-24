@@ -75,8 +75,8 @@ export default async function HabitsPage() {
       </div>
 
       {/* Desktop View - hidden on mobile */}
-      <div className="hidden md:block space-y-6">
-        <h1 className="text-2xl font-semibold">Habits</h1>
+      <div className="hidden md:block bg-background text-foreground space-y-6">
+        <h1 className="text-2xl font-semibold text-foreground">Habits</h1>
 
         {/* Create a habit */}
         {habitForm}

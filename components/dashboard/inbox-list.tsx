@@ -91,25 +91,25 @@ export function InboxList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* View Toggle */}
-      <div className="flex items-center gap-2">
+      <div className="rounded-lg bg-muted/50 p-1.5 flex gap-1">
         <button
           onClick={() => switchView('inbox')}
-          className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             currentView === 'inbox'
-              ? 'bg-gray-200 text-gray-900'
-              : 'bg-white text-gray-700 hover:bg-gray-50'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground/80'
           }`}
         >
           Inbox
         </button>
         <button
           onClick={() => switchView('archived')}
-          className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             currentView === 'archived'
-              ? 'bg-gray-200 text-gray-900'
-              : 'bg-white text-gray-700 hover:bg-gray-50'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground/80'
           }`}
         >
           Archived
@@ -118,11 +118,11 @@ export function InboxList({
 
       {/* Feedback Message */}
       {feedback && (
-        <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+        <div className="rounded-xl border border-border/50 bg-card p-4 text-sm text-foreground shadow-card">
           {feedback}
           <button
             onClick={() => switchView('archived')}
-            className="ml-2 font-medium underline hover:no-underline"
+            className="ml-2 font-medium text-primary underline hover:no-underline"
           >
             View archived
           </button>
@@ -131,7 +131,7 @@ export function InboxList({
 
       {/* Empty State */}
       {!initialCaptures.length && (
-        <div className="rounded-md border p-4 text-sm text-muted-foreground">
+        <div className="rounded-xl border border-border/50 bg-card p-5 text-sm text-muted-foreground shadow-card">
           {currentView === 'archived'
             ? 'No archived captures yet.'
             : 'Your inbox is empty. Add your first capture above.'}
@@ -140,53 +140,54 @@ export function InboxList({
 
       {/* Captures List */}
       {initialCaptures.length > 0 && (
-        <ul className="space-y-2">
+        <div className="rounded-xl border border-border/50 bg-card divide-y divide-border/50 shadow-card overflow-hidden">
           {initialCaptures.map((c) => (
-            <li key={c.id} className="rounded-md border p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-medium">{c.content}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {new Date(c.created_at).toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 gap-2">
-                  {currentView === 'inbox' && (
-                    <>
-                      <button
-                        className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50"
-                        onClick={() => convertToTask(c.id)}
-                        disabled={isPending}
-                        title="Convert this capture into a task"
-                      >
-                        To task
-                      </button>
-                      <button
-                        className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50"
-                        onClick={() => archive(c.id)}
-                        disabled={isPending}
-                        title="Archive this capture"
-                      >
-                        Archive
-                      </button>
-                    </>
-                  )}
-                  {currentView === 'archived' && (
-                    <button
-                      className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50"
-                      onClick={() => restore(c.id)}
-                      disabled={isPending}
-                      title="Restore this capture to inbox"
-                    >
-                      Restore
-                    </button>
-                  )}
+            <div key={c.id} className="p-4 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium text-foreground text-sm">{c.content}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {new Date(c.created_at).toLocaleString()}
                 </div>
               </div>
-            </li>
+
+              <div className="flex shrink-0 gap-2">
+                {currentView === 'inbox' && (
+                  <>
+                    <button
+                      type="button"
+                      className="rounded-md border border-border/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted/50 disabled:opacity-40 transition-colors"
+                      onClick={() => convertToTask(c.id)}
+                      disabled={isPending}
+                      title="Convert this capture into a task"
+                    >
+                      To task
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md border border-border/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted/50 disabled:opacity-40 transition-colors"
+                      onClick={() => archive(c.id)}
+                      disabled={isPending}
+                      title="Archive this capture"
+                    >
+                      Archive
+                    </button>
+                  </>
+                )}
+                {currentView === 'archived' && (
+                  <button
+                    type="button"
+                    className="rounded-md border border-border/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted/50 disabled:opacity-40 transition-colors"
+                    onClick={() => restore(c.id)}
+                    disabled={isPending}
+                    title="Restore this capture to inbox"
+                  >
+                    Restore
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

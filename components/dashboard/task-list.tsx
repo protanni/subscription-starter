@@ -82,23 +82,25 @@ export function TaskList({
 
   return (
     <div className="space-y-6">
-      {/* Category pills – visual only */}
-      <div className="rounded-lg bg-muted/50 p-1.5 flex flex-wrap gap-1">
-        {TASKS_CATEGORIES.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setCategory(value)}
-            className={cn(
-              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              category === value
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground/80'
-            )}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Category pills – visual only, horizontally scrollable on mobile */}
+      <div className="rounded-lg bg-muted/50 p-1.5 overflow-x-auto">
+        <div className="flex gap-1 whitespace-nowrap">
+          {TASKS_CATEGORIES.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setCategory(value)}
+              className={cn(
+                'shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                category === value
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground/80'
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Open tasks */}
@@ -130,7 +132,7 @@ export function TaskList({
           COMPLETED
         </h3>
         {noCompleted ? (
-          <div className="rounded-xl border border-border/30 bg-card/60 py-8 flex flex-col items-center justify-center">
+          <div className="rounded-xl border border-border/50 bg-muted/30 py-8 flex flex-col items-center justify-center">
             <p className="text-sm text-muted-foreground">No completed tasks yet.</p>
           </div>
         ) : (

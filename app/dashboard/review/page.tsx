@@ -20,8 +20,8 @@ export default function ReviewPage() {
       </div>
 
       {/* Desktop View - hidden on mobile */}
-      <div className="hidden md:block space-y-6">
-        <div className="rounded-lg border border-border/50 bg-card p-6 shadow-card">
+      <div className="hidden md:block bg-background text-foreground space-y-6">
+        <div className="rounded-xl border border-border/50 bg-card p-6 shadow-card">
           <h2 className="text-lg font-semibold text-foreground mb-2">
             Weekly Review
           </h2>
@@ -31,7 +31,7 @@ export default function ReviewPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-dashed border-border/50 bg-muted/30 p-6 text-center">
+        <div className="rounded-xl border border-dashed border-border/50 bg-muted/30 p-6 text-center">
           <p className="text-sm text-muted-foreground">Coming soon</p>
         </div>
       </div>

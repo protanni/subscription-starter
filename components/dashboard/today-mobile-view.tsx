@@ -239,11 +239,11 @@ export function TodayMobileView({
           </ListCard>
         ) : (
           <ContentCard>
-            <div className="text-center py-2">
+            <div className="text-center p-4">
               <p className="text-sm text-muted-foreground">No open tasks</p>
               <Link
                 href="/dashboard/tasks"
-                className="text-xs text-emerald-700 font-medium mt-1 inline-block no-underline hover:underline focus-visible:underline active:underline visited:no-underline underline-offset-4"
+                className="text-xs text-primary font-medium mt-1 inline-block no-underline hover:underline focus-visible:underline active:underline visited:no-underline underline-offset-4"
               >
                 Add a task
               </Link>
@@ -270,11 +270,11 @@ export function TodayMobileView({
           </ContentCard>
         ) : (
           <ContentCard>
-            <div className="text-center py-2">
+            <div className="text-center p-4">
               <p className="text-sm text-muted-foreground">No habits yet</p>
               <Link
                 href="/dashboard/habits"
-                className="text-xs text-emerald-700 font-medium mt-1 inline-block no-underline hover:underline focus-visible:underline active:underline visited:no-underline underline-offset-4"
+                className="text-xs text-primary font-medium mt-1 inline-block no-underline hover:underline focus-visible:underline active:underline visited:no-underline underline-offset-4"
               >
                 Add a habit
               </Link>
