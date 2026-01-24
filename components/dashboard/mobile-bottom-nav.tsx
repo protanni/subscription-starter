@@ -3,19 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import {
-  CalendarDays,
-  CheckSquare,
-  Repeat,
-  BarChart3,
-  User
-} from 'lucide-react';
+import { Home, CheckSquare, Repeat, CalendarDays, User } from 'lucide-react';
+import { cn } from '@/utils/cn';
 
+/**
+ * Bottom navigation matching core-clarity-system BottomNav
+ * Uses HSL design token colors via Tailwind classes
+ */
 const navItems = [
-  { href: '/dashboard/today', label: 'Today', icon: CalendarDays },
+  { href: '/dashboard/today', label: 'Today', icon: Home },
   { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/dashboard/habits', label: 'Habits', icon: Repeat },
-  { href: '/dashboard/review', label: 'Review', icon: BarChart3 },
+  { href: '/dashboard/review', label: 'Review', icon: CalendarDays },
   { href: '/account', label: 'Account', icon: User }
 ];
 
@@ -23,8 +22,8 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-black/5 md:hidden">
-      <div className="flex items-center justify-around h-16 pb-safe max-w-3xl mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[hsl(var(--nav-background))] border-t border-[hsl(var(--nav-border))] pb-safe md:hidden">
+      <div className="container flex items-center justify-around h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -35,35 +34,41 @@ export function MobileBottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="relative flex flex-col items-center justify-center flex-1 h-full"
+              className="relative flex flex-col items-center justify-center w-16 h-full"
             >
-              {isActive && (
-                <motion.div
-                  layoutId="mobile-nav-active"
-                  className="absolute inset-x-2 top-1 bottom-1 bg-[#F8FCFB] rounded-lg"
-                  initial={false}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 35
-                  }}
-                />
-              )}
-              <span className="relative z-10 flex flex-col items-center gap-0.5">
-                <Icon
-                  className={`w-5 h-5 ${
-                    isActive ? 'text-[#1f6b68]' : 'text-[#577575]'
-                  }`}
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
+              <motion.div
+                className="flex flex-col items-center gap-1"
+                whileTap={{ scale: 0.95 }}
+              >
+                <div className="relative">
+                  <Icon
+                    className={cn(
+                      'w-5 h-5 transition-colors duration-200',
+                      isActive
+                        ? 'text-[hsl(var(--nav-active))]'
+                        : 'text-[hsl(var(--nav-inactive))]'
+                    )}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-indicator"
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[hsl(var(--nav-active))]"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </div>
                 <span
-                  className={`text-[10px] font-medium ${
-                    isActive ? 'text-[#062323]' : 'text-[#577575]'
-                  }`}
+                  className={cn(
+                    'text-[10px] font-medium transition-colors duration-200',
+                    isActive
+                      ? 'text-[hsl(var(--nav-active))]'
+                      : 'text-[hsl(var(--nav-inactive))]'
+                  )}
                 >
                   {item.label}
                 </span>
-              </span>
+              </motion.div>
             </Link>
           );
         })}
