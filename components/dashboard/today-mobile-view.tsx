@@ -1,36 +1,40 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Plus } from 'lucide-react';
 import {
   containerVariants,
   itemVariants,
   ScreenHeader,
   ContentCard,
   ListCard,
-  SectionHeader
+  SectionHeader,
+  MoodCard,
+  MOOD_LEVELS,
 } from '@/components/ui-kit';
+import type { MoodLevel } from '@/components/ui-kit/mood-card';
+import { TodayHabits } from '@/components/dashboard/today-habits';
 
-interface TodayMobileViewProps {
-  greeting: string;
-  dateString: string;
-  summary: {
-    tasks_due_today?: number;
-    habits_logged_today?: number;
-    mood_today?: string;
-    events_today?: number;
-  } | null;
-  openTasks: Array<{ id: string; title: string; status: string }>;
-  events: Array<{
-    id: string;
-    title: string;
-    starts_at: string;
-    ends_at: string | null;
-    all_day: boolean;
-  }>;
-  children: React.ReactNode; // For TodayHabits and MoodCheckin components
-}
+type HabitWithState = { id: string; name: string; done_today: boolean };
+type MoodCheckinRow = { id: string; mood: number; note: string | null; checkin_date: string } | null;
+
+const LEVEL_TO_MOOD: Record<MoodLevel, number> = {
+  great: 5,
+  good: 4,
+  neutral: 3,
+  low: 2,
+  bad: 1,
+};
+const MOOD_TO_LEVEL: Record<number, MoodLevel> = {
+  5: 'great',
+  4: 'good',
+  3: 'neutral',
+  2: 'low',
+  1: 'bad',
+};
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -43,35 +47,48 @@ function formatDate(): string {
   return new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   });
 }
 
-function formatEventTime(e: {
-  all_day: boolean;
-  starts_at: string;
-  ends_at: string | null;
-}) {
-  if (e.all_day) return 'All day';
-  const start = new Date(e.starts_at);
-  const end = e.ends_at ? new Date(e.ends_at) : null;
-  const fmt = (d: Date) =>
-    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  return end ? `${fmt(start)} → ${fmt(end)}` : fmt(start);
+export interface TodayMobileViewProps {
+  openTasks: Array<{ id: string; title: string; status: string }>;
+  habitsWithState: HabitWithState[];
+  moodCheckin: MoodCheckinRow;
 }
 
 /**
- * Mobile view for Today page using ui-kit components
- * Matches core-clarity-system Today page layout
+ * Mobile Today view matching Lovable composition.
+ * Order: ScreenHeader → Daily Focus → Open Tasks → Today's Habits → Mood.
+ * No metrics grid, no events.
  */
 export function TodayMobileView({
-  summary,
   openTasks,
-  events,
-  children
+  habitsWithState,
+  moodCheckin,
 }: TodayMobileViewProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [selectedMood, setSelectedMood] = useState<number | null>(moodCheckin?.mood ?? null);
+
   const greeting = getGreeting();
   const dateString = formatDate();
+  const completedHabits = habitsWithState.filter((h) => h.done_today).length;
+
+  async function selectMood(level: MoodLevel) {
+    const mood = LEVEL_TO_MOOD[level];
+    const res = await fetch('/api/mood', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mood }),
+    });
+    if (!res.ok) return;
+    setSelectedMood(mood);
+    startTransition(() => router.refresh());
+  }
+
+  const selectedLevel =
+    selectedMood != null ? (MOOD_TO_LEVEL[selectedMood] ?? null) : null;
 
   return (
     <motion.div
@@ -80,36 +97,28 @@ export function TodayMobileView({
       initial="hidden"
       animate="show"
     >
-      {/* Header with System Framing */}
       <ScreenHeader
         title={greeting}
         subtitle={dateString}
         systemLabel="Daily Control Layer"
       />
 
-      {/* Quick Stats */}
-      <motion.div
-        variants={itemVariants}
-        className="grid grid-cols-2 gap-3"
-      >
-        <StatCard
-          title="Tasks due"
-          value={summary?.tasks_due_today ?? 0}
-        />
-        <StatCard
-          title="Habits done"
-          value={summary?.habits_logged_today ?? 0}
-        />
-        <StatCard title="Mood" value={summary?.mood_today ?? '—'} />
-        <StatCard title="Events" value={summary?.events_today ?? 0} />
-      </motion.div>
+      {/* Daily Focus – placeholder only */}
+      <motion.section variants={itemVariants}>
+        <ContentCard label="Daily Focus">
+          <button
+            type="button"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+          >
+            <Plus className="w-4 h-4" />
+            Set daily focus
+          </button>
+        </ContentCard>
+      </motion.section>
 
       {/* Open Tasks */}
       <motion.section variants={itemVariants} className="space-y-3">
-        <SectionHeader
-          title="Open Tasks"
-          viewAllHref="/dashboard/tasks"
-        />
+        <SectionHeader title="Open Tasks" viewAllHref="/dashboard/tasks" viewAllLabel="View all" />
         {openTasks.length > 0 ? (
           <ListCard>
             {openTasks.map((task) => (
@@ -133,46 +142,54 @@ export function TodayMobileView({
         )}
       </motion.section>
 
-      {/* Habits and Mood - rendered via children to preserve server logic */}
-      {children}
-
-      {/* Events */}
+      {/* Today's Habits */}
       <motion.section variants={itemVariants} className="space-y-3">
-        <SectionHeader title="Today's Events" />
-        {events.length > 0 ? (
-          <ListCard>
-            {events.map((event) => (
-              <div key={event.id} className="p-4">
-                <div className="text-sm font-medium text-foreground">
-                  {event.title}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {formatEventTime(event)}
-                </div>
-              </div>
-            ))}
-          </ListCard>
+        <SectionHeader
+          title="Today's Habits"
+          viewAllHref="/dashboard/habits"
+          viewAllLabel="View all"
+          count={
+            habitsWithState.length > 0
+              ? { done: completedHabits, total: habitsWithState.length }
+              : undefined
+          }
+        />
+        {habitsWithState.length > 0 ? (
+          <ContentCard noPadding>
+            <TodayHabits initialHabits={habitsWithState} />
+          </ContentCard>
         ) : (
           <ContentCard>
-            <p className="text-sm text-muted-foreground text-center py-2">
-              No events today
-            </p>
+            <div className="text-center py-2">
+              <p className="text-sm text-muted-foreground">No habits yet</p>
+              <Link
+                href="/dashboard/habits"
+                className="text-xs text-primary hover:underline mt-1 inline-block"
+              >
+                Add a habit
+              </Link>
+            </div>
           </ContentCard>
         )}
       </motion.section>
-    </motion.div>
-  );
-}
 
-function StatCard({ title, value }: { title: string; value: string | number }) {
-  return (
-    <div className="bg-card rounded-xl shadow-card border border-border/50 p-4">
-      <div className="text-xs text-muted-foreground uppercase tracking-wide">
-        {title}
-      </div>
-      <div className="mt-1 text-xl font-semibold text-foreground">
-        {String(value)}
-      </div>
-    </div>
+      {/* Mood – Lovable-style pastel pills */}
+      <motion.section variants={itemVariants} className="space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-medium text-foreground">How are you feeling?</h2>
+          <p className="text-xs text-muted-foreground">Emotional signal for today</p>
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {MOOD_LEVELS.map((level) => (
+            <MoodCard
+              key={level}
+              level={level}
+              isSelected={selectedLevel === level}
+              onSelect={() => selectMood(level)}
+            />
+          ))}
+        </div>
+      </motion.section>
+    </motion.div>
   );
 }

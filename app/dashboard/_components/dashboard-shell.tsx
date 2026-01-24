@@ -1,8 +1,21 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MobileShell } from '@/components/dashboard/mobile-shell';
+
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(true);
+  useEffect(() => {
+    const m = window.matchMedia('(max-width: 767px)');
+    setIsMobile(m.matches);
+    const listener = () => setIsMobile(m.matches);
+    m.addEventListener('change', listener);
+    return () => m.removeEventListener('change', listener);
+  }, []);
+  return isMobile;
+}
 
 const nav = [
   { href: '/dashboard/today', label: 'Today' },
@@ -24,16 +37,18 @@ function getPageTitle(pathname: string) {
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const title = getPageTitle(pathname);
+  const isMobile = useIsMobile();
 
-  return (
-    <>
-      {/* Mobile shell - visible only on mobile (< md) */}
-      <div className="block md:hidden">
+  if (isMobile) {
+    return (
+      <div className="md:hidden">
         <MobileShell>{children}</MobileShell>
       </div>
+    );
+  }
 
-      {/* Desktop shell - visible only on desktop (md+) */}
-      <div className="hidden md:flex min-h-screen">
+  return (
+    <div className="hidden md:flex min-h-screen">
         {/* Sidebar */}
         <aside className="w-64 shrink-0 bg-white border-r border-black/5">
           <div className="h-16 flex items-center justify-center px-4">
@@ -75,7 +90,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <main className="px-6 py-6">{children}</main>
         </div>
-      </div>
-    </>
+    </div>
   );
 }
