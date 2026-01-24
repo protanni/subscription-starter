@@ -2,6 +2,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { TodayHabits } from '@/components/dashboard/today-habits';
 import { MoodCheckin } from '@/components/dashboard/mood-checkin';
+import { TodayMobileView } from '@/components/dashboard/today-mobile-view';
 
 export default async function TodayPage() {
   const supabase = createSupabaseServerClient();
@@ -32,7 +33,7 @@ export default async function TodayPage() {
     .limit(10);
 
   // Fetch active habits with today's completion state
-  const { data: habits, error: habitsError } = await supabase
+  const { data: habits } = await supabase
     .from('habits')
     .select('id,name,is_active,created_at')
     .eq('user_id', user.id)
@@ -48,7 +49,7 @@ export default async function TodayPage() {
           .eq('user_id', user.id)
           .eq('log_date', today)
           .in('habit_id', habitIds)
-      : { data: null, error: null };
+      : { data: null };
 
   const completedIds = new Set(logs?.map((log) => log.habit_id) ?? []);
   const habitsWithState = (habits ?? []).map((habit) => ({
@@ -73,64 +74,107 @@ export default async function TodayPage() {
     .lt('starts_at', `${today}T23:59:59.999Z`)
     .order('starts_at', { ascending: true });
 
+  // Shared components for habits and mood
+  const habitsSection = (
+    <section className="space-y-2 md:space-y-3">
+      <h2 className="text-lg font-semibold md:block hidden">Habits</h2>
+      <div className="md:hidden">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium text-foreground">Today's Habits</h2>
+        </div>
+      </div>
+      <TodayHabits initialHabits={habitsWithState} />
+    </section>
+  );
+
+  const moodSection = (
+    <section className="space-y-2 md:space-y-3">
+      <h2 className="text-lg font-semibold md:block hidden">Mood</h2>
+      <div className="md:hidden">
+        <div className="space-y-1 mb-3">
+          <h2 className="text-sm font-medium text-foreground">How are you feeling?</h2>
+          <p className="text-xs text-muted-foreground">Emotional signal for today</p>
+        </div>
+      </div>
+      <MoodCheckin initialCheckin={moodCheckin} />
+    </section>
+  );
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Today</h1>
+    <>
+      {/* Mobile View - hidden on md+ */}
+      <div className="md:hidden">
+        <TodayMobileView
+          greeting=""
+          dateString=""
+          summary={summary}
+          openTasks={openTasks ?? []}
+          events={events ?? []}
+        >
+          {habitsSection}
+          {moodSection}
+        </TodayMobileView>
+      </div>
 
-      <section className="grid gap-3 md:grid-cols-4">
-        <StatCard title="Tasks due today" value={summary?.tasks_due_today ?? 0} />
-        <StatCard title="Habits logged" value={summary?.habits_logged_today ?? 0} />
-        <StatCard title="Mood" value={summary?.mood_today ?? '—'} />
-        <StatCard title="Events" value={summary?.events_today ?? 0} />
-      </section>
+      {/* Desktop View - hidden on mobile */}
+      <div className="hidden md:block space-y-6">
+        <h1 className="text-2xl font-semibold">Today</h1>
 
-      {/* Open Tasks */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Open Tasks</h2>
-        {!openTasks?.length ? (
-          <div className="text-sm text-muted-foreground">No open tasks.</div>
-        ) : (
-          <ul className="space-y-1">
-            {openTasks.map((task) => (
-              <li key={task.id} className="rounded-md border p-3">
-                <div className="font-medium">{task.title}</div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <section className="grid gap-3 md:grid-cols-4">
+          <StatCard title="Tasks due today" value={summary?.tasks_due_today ?? 0} />
+          <StatCard title="Habits logged" value={summary?.habits_logged_today ?? 0} />
+          <StatCard title="Mood" value={summary?.mood_today ?? '—'} />
+          <StatCard title="Events" value={summary?.events_today ?? 0} />
+        </section>
 
-      {/* Habits for Today */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Habits</h2>
-        <TodayHabits initialHabits={habitsWithState} />
-      </section>
+        {/* Open Tasks */}
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Open Tasks</h2>
+          {!openTasks?.length ? (
+            <div className="text-sm text-muted-foreground">No open tasks.</div>
+          ) : (
+            <ul className="space-y-1">
+              {openTasks.map((task) => (
+                <li key={task.id} className="rounded-md border p-3">
+                  <div className="font-medium">{task.title}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-      {/* Mood Check-in */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Mood</h2>
-        <MoodCheckin initialCheckin={moodCheckin} />
-      </section>
+        {/* Habits for Today */}
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Habits</h2>
+          <TodayHabits initialHabits={habitsWithState} />
+        </section>
 
-      {/* Events */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Events</h2>
-        {!events?.length ? (
-          <div className="text-sm text-muted-foreground">No events today.</div>
-        ) : (
-          <ul className="space-y-2">
-            {events.map((e) => (
-              <li key={e.id} className="rounded-md border p-3">
-                <div className="font-medium">{e.title}</div>
-                <div className="text-sm text-muted-foreground">
-                  {formatEventTime(e)}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
+        {/* Mood Check-in */}
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Mood</h2>
+          <MoodCheckin initialCheckin={moodCheckin} />
+        </section>
+
+        {/* Events */}
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Events</h2>
+          {!events?.length ? (
+            <div className="text-sm text-muted-foreground">No events today.</div>
+          ) : (
+            <ul className="space-y-2">
+              {events.map((e) => (
+                <li key={e.id} className="rounded-md border p-3">
+                  <div className="font-medium">{e.title}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatEventTime(e)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </>
   );
 }
 
