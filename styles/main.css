@@ -92,9 +92,9 @@
   box-sizing: inherit;
 }
 
-*:focus:not(ol) {
-  @apply outline-none ring-2 ring-opacity-50;
-  ring-color: var(--pt-focus);
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35);
 }
 
 html {
@@ -115,9 +115,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   @apply antialiased;
 
-  /* Light theme defaults */
-  color: var(--pt-text);
-  background: var(--pt-bg);
+  /* Shadcn/Tailwind HSL tokens – single source of truth */
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
 }
 
 body {
@@ -143,11 +143,6 @@ p a {
 
 .height-screen-helper {
   min-height: calc(100vh - 80px);
-}
-
-/* Checkbox styling - use PROTANNI primary color */
-input[type='checkbox'] {
-  accent-color: var(--pt-primary);
 }
 
 /* Safe-area utilities for iOS notch/home-indicator */

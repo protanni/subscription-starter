@@ -10,3 +10,4 @@ export * from './section-header';
 export * from './progress-dots';
 export * from './mood-card';
 export * from './empty-state';
+export * from './protanni-checkbox';
