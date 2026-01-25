@@ -3,13 +3,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Smile, Meh, Frown, Heart, AlertCircle } from 'lucide-react';
-
-type MoodCheckin = {
-  id: string;
-  mood: number;
-  note: string | null;
-  checkin_date: string;
-} | null;
+import type { MoodCheckinRow } from '@/components/dashboard/today-types';
+import type { MoodLevel } from '@/components/ui-kit/mood-card';
 
 type MoodOption = {
   value: number;
@@ -24,8 +19,8 @@ const moodOptions: MoodOption[] = [
     value: 5,
     label: 'Great',
     icon: Heart,
-    color: 'text-green-700',
-    bgColor: 'bg-green-50 border-green-200',
+    color: 'text-primary',
+    bgColor: 'bg-muted/50 border-border/50',
   },
   {
     value: 4,
@@ -57,16 +52,32 @@ const moodOptions: MoodOption[] = [
   },
 ];
 
+function moodToNumber(m: number | MoodLevel | null | undefined): number | null {
+  if (m == null) return null;
+  if (typeof m === 'number') return m;
+
+  const map: Record<MoodLevel, number> = {
+    great: 5,
+    good: 4,
+    neutral: 3,
+    low: 2,
+    bad: 1,
+  };
+
+  return map[m];
+}
+
 /**
  * MoodCheckin
  * - Client Component for mood check-in (1-5 scale).
  * - Calls POST /api/mood to upsert today's mood.
  */
-export function MoodCheckin({ initialCheckin }: { initialCheckin: MoodCheckin }) {
+export function MoodCheckin({ initialCheckin }: { initialCheckin: MoodCheckinRow }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
   const [selectedMood, setSelectedMood] = useState<number | null>(
-    initialCheckin?.mood ?? null
+    moodToNumber(initialCheckin?.mood)
   );
 
   async function selectMood(mood: number) {
@@ -82,8 +93,6 @@ export function MoodCheckin({ initialCheckin }: { initialCheckin: MoodCheckin })
     }
 
     setSelectedMood(mood);
-
-    // Refresh to get updated data
     startTransition(() => router.refresh());
   }
 
@@ -96,14 +105,19 @@ export function MoodCheckin({ initialCheckin }: { initialCheckin: MoodCheckin })
       {selectedOption ? (
         <div className="mb-3">
           <p className="text-sm text-muted-foreground">
-            Today: <span className="font-medium text-gray-900">{selectedOption.label}</span>
+            Today:{' '}
+            <span className="font-medium text-gray-900">
+              {selectedOption.label}
+            </span>
           </p>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground mb-3">How are you feeling today?</p>
+        <p className="mb-3 text-sm text-muted-foreground">
+          How are you feeling today?
+        </p>
       )}
 
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex flex-wrap gap-3">
         {moodOptions.map((option) => {
           const Icon = option.icon;
           const isSelected = selectedMood === option.value;
@@ -119,12 +133,20 @@ export function MoodCheckin({ initialCheckin }: { initialCheckin: MoodCheckin })
                 transition-all duration-200
                 hover:scale-[1.02] hover:shadow-sm
                 disabled:opacity-40 disabled:cursor-not-allowed
-                ${isSelected ? option.bgColor + ' ' + option.color + ' border-2 shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}
+                ${
+                  isSelected
+                    ? `${option.bgColor} ${option.color} border-2 shadow-sm`
+                    : 'bg-card border-border text-muted-foreground hover:border-border/80 hover:bg-muted/30'
+                }
               `}
               title={option.label}
             >
               <div className="flex flex-col items-center gap-2">
-                <Icon className={`h-5 w-5 ${isSelected ? option.color : 'text-gray-400'}`} />
+                <Icon
+                  className={`h-5 w-5 ${
+                    isSelected ? option.color : 'text-muted-foreground'
+                  }`}
+                />
                 <span className="text-xs font-medium">{option.label}</span>
               </div>
             </button>

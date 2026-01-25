@@ -5,6 +5,7 @@
    :root {
     /* -----------------------------
        PROTANNI Design System (Light)
+       Ported from core-clarity-system
        ----------------------------- */
   
     --pt-bg: #e4f1ed;
@@ -31,21 +32,58 @@
        Tailwind expects HSL tokens like: 178 55% 27%
        ------------------------------------ */
   
-    /* PROTANNI primary (#1f6b68) ≈ hsl(178 55% 27%) */
-    --primary: 178 55% 27%;
+    /* Core backgrounds (from core-clarity-system) */
+    --background: 40 30% 98%;
+    --foreground: 220 20% 20%;
+
+    /* Cards & surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 20%;
+
+    /* Primary: Soft sage green with blue undertones */
+    --primary: 158 35% 45%;
     --primary-foreground: 0 0% 100%;
-    --ring: 178 55% 27%;
+    --primary-soft: 158 30% 92%;
+    --ring: 158 35% 45%;
   
-    /* Minimal neutrals (good enough for MVP) */
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-  
-    --destructive: 0 70% 35%;
-    --destructive-foreground: 0 0% 98%;
+    /* Secondary: Muted slate blue */
+    --secondary: 210 20% 92%;
+    --secondary-foreground: 220 20% 30%;
+
+    /* Muted: Warm neutrals */
+    --muted: 40 15% 94%;
+    --muted-foreground: 220 10% 50%;
+
+    /* Accent: Soft sage highlight */
+    --accent: 158 25% 88%;
+    --accent-foreground: 158 35% 35%;
+
+    /* Borders & inputs */
+    --border: 40 20% 90%;
+    --input: 40 20% 90%;
+
+    --destructive: 0 60% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --radius: 0.75rem;
+
+    /* Mood colors - pastel, calm */
+    --mood-great: 158 40% 85%;
+    --mood-great-foreground: 158 45% 30%;
+    --mood-good: 180 35% 85%;
+    --mood-good-foreground: 180 40% 30%;
+    --mood-neutral: 45 30% 88%;
+    --mood-neutral-foreground: 45 25% 35%;
+    --mood-low: 25 40% 88%;
+    --mood-low-foreground: 25 35% 35%;
+    --mood-bad: 0 35% 88%;
+    --mood-bad-foreground: 0 40% 40%;
+
+    /* Navigation */
+    --nav-background: 0 0% 100%;
+    --nav-border: 40 20% 92%;
+    --nav-active: 158 35% 45%;
+    --nav-inactive: 220 10% 60%;
   }  
 
 *,
@@ -54,9 +92,9 @@
   box-sizing: inherit;
 }
 
-*:focus:not(ol) {
-  @apply outline-none ring-2 ring-opacity-50;
-  ring-color: var(--pt-focus);
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35);
 }
 
 html {
@@ -77,9 +115,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   @apply antialiased;
 
-  /* Light theme defaults */
-  color: var(--pt-text);
-  background: var(--pt-bg);
+  /* Shadcn/Tailwind HSL tokens – single source of truth */
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
 }
 
 body {
@@ -107,12 +145,22 @@ p a {
   min-height: calc(100vh - 80px);
 }
 
-/* Checkbox styling - use PROTANNI primary color */
-input[type='checkbox'] {
-  accent-color: var(--pt-primary);
+/* Safe-area utilities for iOS notch/home-indicator */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
-/* Safe-area utility for iOS notch/home-indicator */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+/* Premium shadow styles from core-clarity-system */
+.shadow-soft {
+  box-shadow: 0 2px 8px -2px hsl(var(--foreground) / 0.05),
+              0 4px 16px -4px hsl(var(--foreground) / 0.08);
+}
+
+.shadow-card {
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.04),
+              0 4px 12px -2px hsl(var(--foreground) / 0.06);
 }

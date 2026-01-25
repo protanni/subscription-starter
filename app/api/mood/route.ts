@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
+// TODO: Use user timezone from profile to avoid day drift for global users.
+const today = new Date().toISOString().slice(0, 10);
 /**
  * GET /api/mood
  * Gets today's mood check-in for the current user.
  */
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   const supabase = createSupabaseServerClient();
 
   const { data: userData } = await supabase.auth.getUser();
@@ -15,8 +17,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get UTC date string (YYYY-MM-DD)
-  const today = new Date().toISOString().slice(0, 10);
+  // TODO: Use user timezone from profile to avoid day drift for global users.
+const today = new Date().toISOString().slice(0, 10);
 
   const { data: checkin, error } = await supabase
     .from('mood_checkins')
@@ -32,9 +34,18 @@ export async function GET(req: Request) {
   return NextResponse.json({ checkin: checkin ?? null });
 }
 
+const MOOD_VALID: readonly string[] = [
+  'great',
+  'good',
+  'neutral',
+  'low',
+  'bad',
+];
+
 /**
  * POST /api/mood
  * Upserts today's mood check-in for the current user.
+ * Body: { mood: 'great'|'good'|'neutral'|'low'|'bad', note?: string }
  */
 export async function POST(req: Request) {
   const supabase = createSupabaseServerClient();
@@ -47,20 +58,23 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
-  const mood = body?.mood as number | undefined;
-  const note = body?.note as string | undefined;
+  const moodRaw = body?.mood;
+  const noteRaw = body?.note;
 
-  if (!mood || mood < 1 || mood > 5) {
+  const mood =
+    typeof moodRaw === 'string' && MOOD_VALID.includes(moodRaw) ? moodRaw : null;
+  const note = typeof noteRaw === 'string' ? noteRaw : undefined;
+
+  if (!mood) {
     return NextResponse.json(
-      { error: 'Mood must be an integer between 1 and 5' },
+      { error: "Mood must be one of: 'great', 'good', 'neutral', 'low', 'bad'" },
       { status: 400 }
     );
   }
 
-  // Get UTC date string (YYYY-MM-DD)
-  const today = new Date().toISOString().slice(0, 10);
+  // TODO: Use user timezone from profile to avoid day drift for global users.
+const today = new Date().toISOString().slice(0, 10);
 
-  // Upsert mood check-in
   const { data, error } = await supabase
     .from('mood_checkins')
     .upsert(

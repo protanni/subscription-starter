@@ -2,47 +2,73 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { CreateTaskForm } from '@/components/dashboard/create-task-form';
 import { TaskList } from '@/components/dashboard/task-list';
+import { TasksMobileView } from '@/components/dashboard/tasks-mobile-view';
+import { TasksCategoryProvider } from '@/components/dashboard/tasks-category-context';
 
-type ViewType = 'todo' | 'done';
-
-export default async function TasksPage({
-  searchParams
-}: {
-  searchParams: { view?: string };
-}) {
-  // Server Component: fetch initial tasks list on the server.
+export default async function TasksPage() {
   const supabase = createSupabaseServerClient();
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
   if (!user) return null;
 
-  // Determine view: 'todo' (default) or 'done'
-  const view: ViewType = searchParams.view === 'done' ? 'done' : 'todo';
-  const statusFilter = view === 'done' ? 'done' : 'todo';
-
-  // Fetch tasks based on the selected view
-  const { data: tasks, error } = await supabase
+  const { data: openTasks, error: openError } = await supabase
     .from('tasks')
     .select('id,title,status,priority,created_at,completed_at')
     .eq('user_id', user.id)
     .eq('is_deleted', false)
-    .eq('status', statusFilter)
+    .eq('status', 'todo')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    return <div className="text-red-600">Failed to load tasks: {error.message}</div>;
+  const { data: completedTasks, error: completedError } = await supabase
+    .from('tasks')
+    .select('id,title,status,priority,created_at,completed_at')
+    .eq('user_id', user.id)
+    .eq('is_deleted', false)
+    .eq('status', 'done')
+    .order('created_at', { ascending: false });
+
+  if (openError || completedError) {
+    return (
+      <div className="text-red-600">
+        Failed to load tasks: {openError?.message ?? completedError?.message}
+      </div>
+    );
   }
 
+  const todoCount = openTasks?.length ?? 0;
+  const doneCount = completedTasks?.length ?? 0;
+
+  const taskForm = <CreateTaskForm />;
+  const taskList = (
+    <TaskList
+      openTasks={openTasks ?? []}
+      completedTasks={completedTasks ?? []}
+    />
+  );
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Tasks</h1>
+    <TasksCategoryProvider>
+      {/* Mobile View - hidden on md+ */}
+      <div className="md:hidden">
+        <TasksMobileView
+          totalIncomplete={todoCount}
+          totalCompleted={doneCount}
+        >
+          {taskForm}
+          {taskList}
+        </TasksMobileView>
+      </div>
 
-      {/* Create a task directly (bypassing inbox) */}
-      {view === 'todo' && <CreateTaskForm />}
-
-      {/* Client component: toggles done / deletes without reload */}
-      <TaskList initialTasks={tasks ?? []} currentView={view} />
-    </div>
+      {/* Desktop View - hidden on mobile */}
+      <div className="hidden md:block bg-background text-foreground space-y-6">
+        <h1 className="text-2xl font-semibold text-foreground">Tasks</h1>
+        <p className="text-sm text-muted-foreground">
+          {todoCount} open · {doneCount} completed
+        </p>
+        {taskForm}
+        {taskList}
+      </div>
+    </TasksCategoryProvider>
   );
 }

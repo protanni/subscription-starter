@@ -1,7 +1,6 @@
 // app/dashboard/today/page.tsx
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { TodayHabits } from '@/components/dashboard/today-habits';
-import { MoodCheckin } from '@/components/dashboard/mood-checkin';
+import { TodayViewSwitcher } from '@/components/dashboard/today-view-switcher';
 
 export default async function TodayPage() {
   const supabase = createSupabaseServerClient();
@@ -10,18 +9,14 @@ export default async function TodayPage() {
 
   if (!user) return null;
 
-  // Get UTC date string (YYYY-MM-DD)
   const today = new Date().toISOString().slice(0, 10);
 
-  // View `v_today_summary` is expected to exist in your DB.
-  // It aggregates today's key KPIs (tasks due, habits logged, mood, events count).
   const { data: summary } = await supabase
     .from('v_today_summary')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
 
-  // Fetch open tasks (status = 'todo')
   const { data: openTasks } = await supabase
     .from('tasks')
     .select('id,title,status')
@@ -31,8 +26,7 @@ export default async function TodayPage() {
     .order('created_at', { ascending: false })
     .limit(10);
 
-  // Fetch active habits with today's completion state
-  const { data: habits, error: habitsError } = await supabase
+  const { data: habits } = await supabase
     .from('habits')
     .select('id,name,is_active,created_at')
     .eq('user_id', user.id)
@@ -44,20 +38,40 @@ export default async function TodayPage() {
     habitIds.length > 0
       ? await supabase
           .from('habit_logs')
-          .select('habit_id')
-          .eq('user_id', user.id)
+          .select('habit_id,log_date')
           .eq('log_date', today)
           .in('habit_id', habitIds)
-      : { data: null, error: null };
+      : { data: null };
 
   const completedIds = new Set(logs?.map((log) => log.habit_id) ?? []);
+
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - 6);
+  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const { data: weeklyLogs } =
+    habitIds.length > 0
+      ? await supabase
+          .from('habit_logs')
+          .select('habit_id,log_date')
+          .gte('log_date', weekStartStr)
+          .lte('log_date', today)
+          .in('habit_id', habitIds)
+      : { data: null };
+
+  const completedByHabit = new Map<string, string[]>();
+  for (const log of weeklyLogs ?? []) {
+    const arr = completedByHabit.get(log.habit_id) ?? [];
+    arr.push(log.log_date);
+    completedByHabit.set(log.habit_id, arr);
+  }
+
   const habitsWithState = (habits ?? []).map((habit) => ({
     id: habit.id,
     name: habit.name,
     done_today: completedIds.has(habit.id),
+    completedDates: completedByHabit.get(habit.id) ?? [],
   }));
 
-  // Fetch today's mood check-in
   const { data: moodCheckin } = await supabase
     .from('mood_checkins')
     .select('id,mood,note,checkin_date')
@@ -73,85 +87,25 @@ export default async function TodayPage() {
     .lt('starts_at', `${today}T23:59:59.999Z`)
     .order('starts_at', { ascending: true });
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('daily_focus_text,daily_focus_updated_at')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const dailyFocus = {
+    text: profile?.daily_focus_text ?? null,
+    updatedAt: profile?.daily_focus_updated_at ?? null,
+  };
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Today</h1>
-
-      <section className="grid gap-3 md:grid-cols-4">
-        <StatCard title="Tasks due today" value={summary?.tasks_due_today ?? 0} />
-        <StatCard title="Habits logged" value={summary?.habits_logged_today ?? 0} />
-        <StatCard title="Mood" value={summary?.mood_today ?? '—'} />
-        <StatCard title="Events" value={summary?.events_today ?? 0} />
-      </section>
-
-      {/* Open Tasks */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Open Tasks</h2>
-        {!openTasks?.length ? (
-          <div className="text-sm text-muted-foreground">No open tasks.</div>
-        ) : (
-          <ul className="space-y-1">
-            {openTasks.map((task) => (
-              <li key={task.id} className="rounded-md border p-3">
-                <div className="font-medium">{task.title}</div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Habits for Today */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Habits</h2>
-        <TodayHabits initialHabits={habitsWithState} />
-      </section>
-
-      {/* Mood Check-in */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Mood</h2>
-        <MoodCheckin initialCheckin={moodCheckin} />
-      </section>
-
-      {/* Events */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Events</h2>
-        {!events?.length ? (
-          <div className="text-sm text-muted-foreground">No events today.</div>
-        ) : (
-          <ul className="space-y-2">
-            {events.map((e) => (
-              <li key={e.id} className="rounded-md border p-3">
-                <div className="font-medium">{e.title}</div>
-                <div className="text-sm text-muted-foreground">
-                  {formatEventTime(e)}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
+    <TodayViewSwitcher
+      summary={summary}
+      openTasks={openTasks ?? []}
+      events={events ?? []}
+      habitsWithState={habitsWithState}
+      moodCheckin={moodCheckin}
+      dailyFocus={dailyFocus}
+    />
   );
-}
-
-function StatCard({ title, value }: { title: string; value: any }) {
-  return (
-    <div className="rounded-md border p-4">
-      <div className="text-sm text-muted-foreground">{title}</div>
-      <div className="mt-1 text-2xl font-semibold">{String(value)}</div>
-    </div>
-  );
-}
-
-function formatEventTime(e: { all_day: boolean; starts_at: string; ends_at: string | null }) {
-  // Avoid showing raw ISO strings in the UI.
-  if (e.all_day) return 'All day';
-
-  const start = new Date(e.starts_at);
-  const end = e.ends_at ? new Date(e.ends_at) : null;
-
-  const fmt = (d: Date) =>
-    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-
-  return end ? `${fmt(start)} → ${fmt(end)}` : fmt(start);
 }

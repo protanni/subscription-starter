@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { ProgressDots, ProtanniCheckbox } from '@/components/ui-kit';
 
 type Habit = {
   id: string;
   name: string;
   done_today: boolean;
+  completedDates?: string[];
 };
 
 /**
@@ -24,6 +26,8 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
     setHabits(initialHabits);
   }, [initialHabits]);
 
+  const today = new Date().toISOString().slice(0, 10);
+
   async function toggle(habitId: string) {
     const res = await fetch('/api/habits/toggle', {
       method: 'POST',
@@ -36,53 +40,57 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
       return;
     }
 
-    // Optimistically update the done_today state
     setHabits((prev) =>
-      prev.map((h) =>
-        h.id === habitId ? { ...h, done_today: !h.done_today } : h
-      )
+      prev.map((h) => {
+        if (h.id !== habitId) return h;
+        const next = !h.done_today;
+        const dates = h.completedDates ?? [];
+        const nextDates = next
+          ? dates.includes(today)
+            ? dates
+            : [...dates, today]
+          : dates.filter((d: string) => d !== today);
+        return { ...h, done_today: next, completedDates: nextDates };
+      })
     );
 
-    // Refresh to get updated data
     startTransition(() => router.refresh());
   }
 
   if (!habits.length) {
     return (
-      <div className="text-sm text-muted-foreground">No habits set up yet.</div>
+      <div className="py-4 text-sm text-muted-foreground">No habits set up yet.</div>
     );
   }
 
   return (
-    <ul className="space-y-1">
+    <div className="divide-y divide-border/50">
       {habits.map((h) => {
         const done = h.done_today;
         return (
-          <li key={h.id} className="rounded-md border p-3">
-            <div className="flex items-center gap-3">
-              {/* Checkbox */}
-              <input
-                type="checkbox"
-                checked={done}
-                onChange={() => toggle(h.id)}
-                disabled={isPending}
-                className="h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-primary focus:ring-offset-0"
-              />
-
-              {/* Habit Name */}
-              <div className="flex-1 min-w-0">
-                <div
-                  className={`font-medium ${
-                    done ? 'line-through opacity-70' : ''
-                  }`}
-                >
-                  {h.name}
-                </div>
+          <div
+            key={h.id}
+            className={`flex items-center gap-3 p-4 ${done ? 'text-muted-foreground' : ''}`}
+          >
+            <ProtanniCheckbox
+              checked={done}
+              onChange={() => toggle(h.id)}
+              disabled={isPending}
+              aria-label={done ? `Mark ${h.name} incomplete` : `Mark ${h.name} complete`}
+            />
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className={done ? 'font-medium text-muted-foreground' : 'font-medium text-sm'}>
+                {h.name}
               </div>
+              <ProgressDots
+                completedDates={h.completedDates ?? []}
+                days={7}
+                className="shrink-0"
+              />
             </div>
-          </li>
+          </div>
         );
       })}
-    </ul>
+    </div>
   );
 }

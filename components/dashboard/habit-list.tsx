@@ -3,6 +3,8 @@
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
+import { ProtanniCheckbox } from '@/components/ui-kit';
+import { ListCard } from '@/components/ui-kit/content-card';
 
 type Habit = {
   id: string;
@@ -16,13 +18,13 @@ type Habit = {
  * HabitList
  * - Client Component for toggling habit completion (done/undo) and deleting.
  * - Calls POST /api/habits/toggle and POST /api/habits/delete
+ * - Uses ListCard, divide-y, same surface system as Tasks.
  */
 export function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [habits, setHabits] = useState(initialHabits);
 
-  // Sync local state when initialHabits changes
   useEffect(() => {
     setHabits(initialHabits);
   }, [initialHabits]);
@@ -39,14 +41,11 @@ export function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
       return;
     }
 
-    // Optimistically update the done_today state
     setHabits((prev) =>
       prev.map((h) =>
         h.id === habitId ? { ...h, done_today: !h.done_today } : h
       )
     );
-
-    // Refresh to get updated data
     startTransition(() => router.refresh());
   }
 
@@ -62,64 +61,58 @@ export function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
       return;
     }
 
-    // Optimistically remove from current list
     setHabits((prev) => prev.filter((h) => h.id !== habitId));
-
-    // Refresh to get updated data
     startTransition(() => router.refresh());
   }
 
   return (
-    <div className="space-y-4">
-      {/* Empty State */}
+    <div className="space-y-6">
       {!habits.length && (
-        <div className="rounded-md border p-4 text-sm text-muted-foreground">
-          No habits yet. Create your first habit above.
+        <div className="rounded-xl border border-border/50 bg-card py-8 flex flex-col items-center justify-center shadow-card">
+          <p className="text-sm text-muted-foreground">
+            No habits yet. Create your first habit above.
+          </p>
         </div>
       )}
 
-      {/* Habits List */}
       {habits.length > 0 && (
-        <ul className="space-y-1">
+        <ListCard>
           {habits.map((h) => {
             const done = h.done_today;
             return (
-              <li key={h.id} className="rounded-md border p-3">
-                <div className="flex items-center gap-3">
-                  {/* Checkbox */}
-                  <input
-                    type="checkbox"
-                    checked={done}
-                    onChange={() => toggle(h.id)}
-                    disabled={isPending}
-                    className="h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-primary focus:ring-offset-0"
-                  />
-
-                  {/* Habit Name */}
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className={`font-medium ${
-                        done ? 'line-through opacity-70' : ''
-                      }`}
-                    >
-                      {h.name}
-                    </div>
-                  </div>
-
-                  {/* Trash Icon */}
-                  <button
-                    onClick={() => deleteHabit(h.id)}
-                    disabled={isPending}
-                    className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-40"
-                    title="Delete habit"
+              <div
+                key={h.id}
+                className={`flex items-center gap-3 p-4 ${
+                  done ? 'text-muted-foreground' : ''
+                }`}
+              >
+                <ProtanniCheckbox
+                  checked={done}
+                  onChange={() => toggle(h.id)}
+                  disabled={isPending}
+                />
+                <div className="flex-1 min-w-0">
+                  <span
+                    className={`text-sm font-medium ${
+                      done ? 'line-through opacity-70' : ''
+                    }`}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                    {h.name}
+                  </span>
                 </div>
-              </li>
+                <button
+                  type="button"
+                  onClick={() => deleteHabit(h.id)}
+                  disabled={isPending}
+                  className="p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-40 transition-colors"
+                  title="Delete habit"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             );
           })}
-        </ul>
+        </ListCard>
       )}
     </div>
   );
