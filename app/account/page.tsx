@@ -22,7 +22,7 @@ export default async function Account() {
   }
 
   return (
-    <section className="mb-32 bg-white">
+    <section className="mb-32 bg-background min-h-screen">
       <div className="max-w-6xl px-4 py-8 mx-auto sm:px-6 sm:pt-24 lg:px-8">
         <div className="sm:align-center sm:flex sm:flex-col">
           <h1 className="text-4xl font-extrabold text-gray-900 sm:text-center sm:text-6xl">

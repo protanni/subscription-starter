@@ -61,7 +61,7 @@ export default async function TasksPage() {
       </div>
 
       {/* Desktop View - hidden on mobile */}
-      <div className="hidden md:block bg-background text-foreground space-y-6">
+      <div className="hidden md:block bg-background min-h-screen text-foreground space-y-6">
         <h1 className="text-2xl font-semibold text-foreground">Tasks</h1>
         <p className="text-sm text-muted-foreground">
           {todoCount} open · {doneCount} completed

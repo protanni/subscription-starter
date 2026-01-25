@@ -68,7 +68,7 @@ export function HabitList({ initialHabits }: { initialHabits: Habit[] }) {
   return (
     <div className="space-y-6">
       {!habits.length && (
-        <div className="rounded-xl border border-border/50 bg-card py-8 flex flex-col items-center justify-center shadow-card">
+        <div className="rounded-xl border border-border/50 bg-card p-5 flex flex-col items-center justify-center shadow-card">
           <p className="text-sm text-muted-foreground">
             No habits yet. Create your first habit above.
           </p>

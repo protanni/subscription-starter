@@ -44,7 +44,7 @@ function useMediaQuery(query: string): boolean {
 
 function StatCard({ title, value }: { title: string; value: string | number }) {
   return (
-    <div className="rounded-md border p-4">
+    <div className="bg-card rounded-xl shadow-card border border-border/50 p-5">
       <div className="text-sm text-muted-foreground">{title}</div>
       <div className="mt-1 text-2xl font-semibold">{String(value)}</div>
     </div>
@@ -78,7 +78,7 @@ function TodayDesktopView({
   moodCheckin: MoodCheckinRow;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="bg-background min-h-screen text-foreground space-y-6">
       <h1 className="text-2xl font-semibold">Today</h1>
 
       <section className="grid gap-3 md:grid-cols-4">
@@ -93,9 +93,9 @@ function TodayDesktopView({
         {!openTasks.length ? (
           <div className="text-sm text-muted-foreground">No open tasks.</div>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {openTasks.map((task) => (
-              <li key={task.id} className="rounded-md border p-3">
+              <li key={task.id} className="bg-card rounded-xl shadow-card border border-border/50 p-5">
                 <div className="font-medium">{task.title}</div>
               </li>
             ))}
@@ -120,7 +120,7 @@ function TodayDesktopView({
         ) : (
           <ul className="space-y-2">
             {events.map((e) => (
-              <li key={e.id} className="rounded-md border p-3">
+              <li key={e.id} className="bg-card rounded-xl shadow-card border border-border/50 p-5">
                 <div className="font-medium">{e.title}</div>
                 <div className="text-sm text-muted-foreground">{formatEventTime(e)}</div>
               </li>
