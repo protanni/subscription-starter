@@ -22,8 +22,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en">
-      <body className="min-h-dvh bg-[#E4F1ED] text-[#2B4040] antialiased"
-      >
+      <body className="min-h-dvh bg-background text-foreground antialiased">
         <Navbar />
         <main
           id="skip"
