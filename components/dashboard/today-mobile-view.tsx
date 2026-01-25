@@ -281,12 +281,12 @@ export function TodayMobileView({
       <motion.section variants={itemVariants} className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mood</span>
             <h2 className="text-sm font-medium text-foreground">How are you feeling?</h2>
-            <p className="text-xs text-muted-foreground">Emotional signal for today</p>
           </div>
           {hasMoodToday && (
             <Pencil
-              className="w-4 h-4 shrink-0 text-muted-foreground mt-0.5"
+              className="w-4 h-4 shrink-0 text-muted-foreground mt-1"
               strokeWidth={2}
               aria-hidden
             />
