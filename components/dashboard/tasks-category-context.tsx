@@ -1,14 +1,18 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
-export type TasksCategory =
-  | 'all'
-  | 'work'
-  | 'personal'
-  | 'mind'
-  | 'body'
-  | 'relationships';
+export type TasksCategory = 'all' | 'work' | 'personal' | 'mind' | 'body';
+
+const VALID_CATEGORIES: TasksCategory[] = ['all', 'work', 'personal', 'mind', 'body'];
 
 export const TASKS_CATEGORIES: { value: TasksCategory; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -16,7 +20,6 @@ export const TASKS_CATEGORIES: { value: TasksCategory; label: string }[] = [
   { value: 'personal', label: 'Personal' },
   { value: 'mind', label: 'Mind' },
   { value: 'body', label: 'Body' },
-  { value: 'relationships', label: 'Relationships' },
 ];
 
 const PLACEHOLDER_MAP: Record<TasksCategory, string> = {
@@ -25,7 +28,6 @@ const PLACEHOLDER_MAP: Record<TasksCategory, string> = {
   personal: 'Add a personal task…',
   mind: 'Add a mind task…',
   body: 'Add a body task…',
-  relationships: 'Add a relationships task…',
 };
 
 const EMPTY_MESSAGE_MAP: Record<TasksCategory, string> = {
@@ -34,7 +36,6 @@ const EMPTY_MESSAGE_MAP: Record<TasksCategory, string> = {
   personal: 'No personal tasks yet.',
   mind: 'No mind tasks yet.',
   body: 'No body tasks yet.',
-  relationships: 'No relationships tasks yet.',
 };
 
 type TasksCategoryContextValue = {
@@ -46,9 +47,49 @@ type TasksCategoryContextValue = {
 
 const TasksCategoryContext = createContext<TasksCategoryContextValue | null>(null);
 
+function parseCategory(value: string | null): TasksCategory {
+  if (value && VALID_CATEGORIES.includes(value as TasksCategory)) {
+    return value as TasksCategory;
+  }
+  return 'all';
+}
+
 export function TasksCategoryProvider({ children }: { children: ReactNode }) {
-  const [category, setCategoryState] = useState<TasksCategory>('all');
-  const setCategory = useCallback((c: TasksCategory) => setCategoryState(c), []);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // Initialize from URL param
+  const [category, setCategoryState] = useState<TasksCategory>(() =>
+    parseCategory(searchParams.get('area'))
+  );
+
+  // Sync URL when category changes
+  const setCategory = useCallback(
+    (c: TasksCategory) => {
+      setCategoryState(c);
+
+      const params = new URLSearchParams(searchParams.toString());
+      if (c === 'all') {
+        params.delete('area');
+      } else {
+        params.set('area', c);
+      }
+
+      const query = params.toString();
+      const nextUrl = query ? `${pathname}?${query}` : pathname;
+      router.replace(nextUrl, { scroll: false });
+    },
+    [router, searchParams, pathname]
+  );
+
+  // Sync state if URL changes externally (e.g., back/forward)
+  useEffect(() => {
+    const urlCategory = parseCategory(searchParams.get('area'));
+    if (urlCategory !== category) {
+      setCategoryState(urlCategory);
+    }
+  }, [searchParams, category]);
 
   const value: TasksCategoryContextValue = {
     category,

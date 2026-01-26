@@ -1,15 +1,12 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { ListCard, MutedListCard } from '@/components/ui-kit/content-card';
 import { ProtanniCheckbox } from '@/components/ui-kit/protanni-checkbox';
-import {
-  useTasksCategory,
-  TASKS_CATEGORIES,
-} from '@/components/dashboard/tasks-category-context';
+import { useTasksCategory } from '@/components/dashboard/tasks-category-context';
 
 type Task = {
   id: string;
@@ -18,13 +15,15 @@ type Task = {
   priority: string;
   created_at: string;
   completed_at: string | null;
+  area?: string | null;
 };
 
 /**
  * TaskList
- * - Category pills (visual only, no filtering).
  * - Open tasks in a card list; completed in a separate "COMPLETED" section.
- * - Round checkboxes; toggle done/undo and delete.
+ * - Client-side filtering by category (area).
+ * - "All" shows all tasks including those with area NULL.
+ * - Other tabs show only tasks with matching area (strict equality).
  */
 export function TaskList({
   openTasks: initialOpen,
@@ -35,7 +34,8 @@ export function TaskList({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { category, setCategory, emptyMessage } = useTasksCategory();
+  const { category, emptyMessage } = useTasksCategory();
+
   const [openTasks, setOpenTasks] = useState(initialOpen);
   const [completedTasks, setCompletedTasks] = useState(initialCompleted);
 
@@ -43,6 +43,17 @@ export function TaskList({
     setOpenTasks(initialOpen);
     setCompletedTasks(initialCompleted);
   }, [initialOpen, initialCompleted]);
+
+  // Client-side filtering based on selected category
+  const filteredOpenTasks = useMemo(() => {
+    if (category === 'all') return openTasks;
+    return openTasks.filter((t) => t.area === category);
+  }, [openTasks, category]);
+
+  const filteredCompletedTasks = useMemo(() => {
+    if (category === 'all') return completedTasks;
+    return completedTasks.filter((t) => t.area === category);
+  }, [completedTasks, category]);
 
   async function toggle(taskId: string, currentlyDone: boolean) {
     const res = await fetch('/api/tasks/toggle', {
@@ -54,11 +65,13 @@ export function TaskList({
       console.error(await res.text());
       return;
     }
+
     if (currentlyDone) {
       setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
     } else {
       setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
     }
+
     startTransition(() => router.refresh());
   }
 
@@ -72,38 +85,18 @@ export function TaskList({
       console.error(await res.text());
       return;
     }
+
     setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
     setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
     startTransition(() => router.refresh());
   }
 
-  const noOpen = openTasks.length === 0;
-  const noCompleted = completedTasks.length === 0;
+  const noOpen = filteredOpenTasks.length === 0;
+  const noCompleted = filteredCompletedTasks.length === 0;
 
   return (
     <div className="space-y-6">
-      {/* Category pills – visual only, horizontally scrollable on mobile */}
-      <div className="rounded-lg bg-muted/50 p-1.5 overflow-x-auto">
-        <div className="flex gap-1 whitespace-nowrap">
-          {TASKS_CATEGORIES.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setCategory(value)}
-              className={cn(
-                'shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                category === value
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground/80'
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Open tasks */}
+      {/* Open tasks (filtered) */}
       {noOpen ? (
         <div className="flex flex-col items-center justify-center py-16 space-y-4">
           <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
@@ -113,7 +106,7 @@ export function TaskList({
         </div>
       ) : (
         <ListCard>
-          {openTasks.map((t) => (
+          {filteredOpenTasks.map((t) => (
             <TaskRow
               key={t.id}
               task={t}
@@ -126,18 +119,19 @@ export function TaskList({
         </ListCard>
       )}
 
-      {/* COMPLETED section */}
+      {/* COMPLETED section (filtered) */}
       <div className="space-y-3">
         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
           COMPLETED
         </h3>
+
         {noCompleted ? (
           <div className="rounded-xl border border-border/50 bg-muted/30 py-8 flex flex-col items-center justify-center">
             <p className="text-sm text-muted-foreground">No completed tasks yet.</p>
           </div>
         ) : (
           <MutedListCard className="shadow-sm">
-            {completedTasks.map((t) => (
+            {filteredCompletedTasks.map((t) => (
               <TaskRow
                 key={t.id}
                 task={t}
@@ -168,20 +162,20 @@ function TaskRow({
   onDelete: () => void;
 }) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 p-4',
-        isDone && 'text-muted-foreground'
-      )}
-    >
-      <ProtanniCheckbox
-        checked={isDone}
-        onChange={onToggle}
-        disabled={isPending}
-      />
-      <div className="flex-1 min-w-0">
-        <span className="text-sm font-medium">{task.title}</span>
+    <div className={cn('flex items-center gap-3 p-4', isDone && 'text-muted-foreground')}>
+      <ProtanniCheckbox checked={isDone} onChange={onToggle} disabled={isPending} />
+
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <span className="text-sm font-medium truncate">{task.title}</span>
+
+        {/* Optional label (requires tasks.area to be selected in queries) */}
+        {task.area && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/50 text-muted-foreground shrink-0">
+            {task.area[0].toUpperCase() + task.area.slice(1)}
+          </span>
+        )}
       </div>
+
       <button
         type="button"
         onClick={onDelete}

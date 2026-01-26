@@ -17,11 +17,20 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
+
   const title = (body?.title ?? '').trim();
 
   if (!title) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 });
   }
+
+  // Parse area safely: accept string | null | undefined
+  const raw = body?.area;
+  const areaRaw = typeof raw === 'string' ? raw.trim().toLowerCase() : null;
+  const normalizedArea =
+    areaRaw && ['work', 'personal', 'mind', 'body'].includes(areaRaw)
+      ? areaRaw
+      : null;
 
   const { data, error } = await supabase
     .from('tasks')
@@ -31,8 +40,9 @@ export async function POST(req: Request) {
       status: 'todo',
       priority: 'medium',
       is_deleted: false,
+      area: normalizedArea,
     })
-    .select('id,title,status,priority,created_at,completed_at')
+    .select('id,title,status,priority,created_at,completed_at,area')
     .single();
 
   if (error) {

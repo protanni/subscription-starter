@@ -7,16 +7,14 @@ import { useTasksCategory } from '@/components/dashboard/tasks-category-context'
 
 /**
  * CreateTaskForm
- * - Client Component used on the Tasks page.
  * - Calls POST /api/tasks to create a task.
- * - Uses router.refresh() to re-fetch Server Component data.
- * - Placeholder adapts to selected category (visual only).
+ * - Saves selected category as task.area (null if "all").
  */
 export function CreateTaskForm() {
   const [title, setTitle] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const { placeholder } = useTasksCategory();
+  const { placeholder, category } = useTasksCategory();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,10 +22,12 @@ export function CreateTaskForm() {
     const value = title.trim();
     if (!value) return;
 
+    const area = category === 'all' ? null : category;
+
     const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: value }),
+      body: JSON.stringify({ title: value, area }),
     });
 
     if (!res.ok) {
@@ -44,7 +44,7 @@ export function CreateTaskForm() {
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full rounded-xl border border-border/60 bg-card px-4 py-3 pr-12 text-sm text-foreground placeholder:text-muted-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50"
+        className="w-full rounded-xl border border-border/50 bg-muted/50 px-4 py-3 pr-12 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-50"
         placeholder={placeholder}
         disabled={isPending}
       />
