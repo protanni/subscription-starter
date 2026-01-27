@@ -2,3 +2,6 @@
 .branches
 .temp
 .env
+# Supabase local artifacts
+.supabase-status.json
+supabase/migrations_backup_*/
