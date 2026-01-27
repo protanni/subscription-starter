@@ -46,6 +46,7 @@ export function ContentCard({
  */
 export function ListCard({
   children,
+  
   className,
   ...props
 }: Omit<ContentCardProps, 'noPadding' | 'label'>) {
