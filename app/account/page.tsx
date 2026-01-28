@@ -2,7 +2,7 @@ import CustomerPortalForm from '@/components/ui/AccountForms/CustomerPortalForm'
 import EmailForm from '@/components/ui/AccountForms/EmailForm';
 import NameForm from '@/components/ui/AccountForms/NameForm';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import {
   getUserDetails,
   getSubscription,
@@ -41,3 +41,4 @@ export default async function Account() {
     </section>
   );
 }
+

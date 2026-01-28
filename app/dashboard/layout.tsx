@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { getUser, getProfile } from '@/utils/supabase/queries';
 import { DashboardShell } from './_components/dashboard-shell';
 
@@ -24,3 +24,4 @@ export default async function DashboardLayout({
 
   return <DashboardShell>{children}</DashboardShell>;
 }
+

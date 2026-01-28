@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { getProfile, getUser } from '@/utils/supabase/queries';
 
 export default async function HomePage() {
@@ -53,3 +53,4 @@ export default async function HomePage() {
     </main>
   );
 }
+

@@ -18,9 +18,12 @@ export function createSupabaseServerClient() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Ignorado: Next não permite set de cookie em alguns contexts
+          // Next pode bloquear set durante render
         }
       },
     },
   });
 }
+
+// ✅ só UM alias (não crie outro createClient em nenhum lugar desse arquivo)
+export const createClient = createSupabaseServerClient;
