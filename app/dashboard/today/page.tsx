@@ -2,6 +2,16 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { TodayViewSwitcher } from '@/components/dashboard/today-view-switcher';
 
+function dbMoodToNumber(
+  mood: 'great' | 'good' | 'neutral' | 'low' | 'very_low'
+): number {
+  if (mood === 'great') return 1;
+  if (mood === 'good') return 2;
+  if (mood === 'neutral') return 3;
+  if (mood === 'low') return 4;
+  return 5; // very_low
+}
+
 export default async function TodayPage() {
   const supabase = createSupabaseServerClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -34,6 +44,7 @@ export default async function TodayPage() {
     .order('created_at', { ascending: false });
 
   const habitIds = habits?.map((h) => h.id) ?? [];
+
   const { data: logs } =
     habitIds.length > 0
       ? await supabase
@@ -48,6 +59,7 @@ export default async function TodayPage() {
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - 6);
   const weekStartStr = weekStart.toISOString().slice(0, 10);
+
   const { data: weeklyLogs } =
     habitIds.length > 0
       ? await supabase
@@ -79,6 +91,13 @@ export default async function TodayPage() {
     .eq('checkin_date', today)
     .maybeSingle();
 
+  const moodCheckinForUi = moodCheckin
+    ? {
+        ...moodCheckin,
+        mood: dbMoodToNumber(moodCheckin.mood),
+      }
+    : null;
+
   const { data: events } = await supabase
     .from('calendar_events')
     .select('id,title,starts_at,ends_at,all_day')
@@ -98,13 +117,22 @@ export default async function TodayPage() {
     updatedAt: profile?.daily_focus_updated_at ?? null,
   };
 
+  const summarySafe = summary
+    ? {
+        tasks_due_today: summary.tasks_due_today ?? undefined,
+        habits_logged_today: summary.habits_logged_today ?? undefined,
+        mood_today: summary.mood_today ?? undefined,
+        events_today: summary.events_today ?? undefined,
+      }
+    : null;
+
   return (
     <TodayViewSwitcher
-      summary={summary}
+      summary={summarySafe}
       openTasks={openTasks ?? []}
       events={events ?? []}
       habitsWithState={habitsWithState}
-      moodCheckin={moodCheckin}
+      moodCheckin={moodCheckinForUi}
       dailyFocus={dailyFocus}
     />
   );

@@ -1,6 +1,6 @@
 // lib/supabase/client.ts
 import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from './database.types';
+import type { Database } from '@/types_db';
 import { getSupabaseEnv } from './env';
 
 let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null;

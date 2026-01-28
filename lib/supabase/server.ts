@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import type { Database } from './database.types';
+import type { Database } from '@/types_db';
 import { getSupabaseEnv } from './env';
 
 export function createSupabaseServerClient() {
@@ -12,19 +12,13 @@ export function createSupabaseServerClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(
-        cookiesToSet: Array<{
-          name: string;
-          value: string;
-          options?: Parameters<typeof cookieStore.set>[2];
-        }>
-      ) {
+      setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // em alguns contextos o Next não deixa setar cookie durante render
+          // Ignorado: Next não permite set de cookie em alguns contexts
         }
       },
     },

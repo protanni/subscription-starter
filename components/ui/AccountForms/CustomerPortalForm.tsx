@@ -8,9 +8,11 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import { Tables } from '@/types_db';
 
-type Subscription = Tables<'subscriptions'>;
-type Price = Tables<'prices'>;
-type Product = Tables<'products'>;
+import type {
+  StripeSubscriptionLite as Subscription,
+  StripePriceLite as Price,
+  StripeProductLite as Product,
+} from '@/utils/stripe/types';
 
 type SubscriptionWithPriceAndProduct = Subscription & {
   prices:

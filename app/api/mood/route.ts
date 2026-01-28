@@ -1,99 +1,99 @@
+// app/api/mood/route.ts
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import type { Database } from '@/types_db';
 
-// TODO: Use user timezone from profile to avoid day drift for global users.
-const today = new Date().toISOString().slice(0, 10);
-/**
- * GET /api/mood
- * Gets today's mood check-in for the current user.
- */
-export async function GET(_req: Request) {
-  const supabase = createSupabaseServerClient();
+type MoodLevel = Database['public']['Enums']['mood_level'];
 
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // TODO: Use user timezone from profile to avoid day drift for global users.
-const today = new Date().toISOString().slice(0, 10);
-
-  const { data: checkin, error } = await supabase
-    .from('mood_checkins')
-    .select('id,mood,note,checkin_date')
-    .eq('user_id', user.id)
-    .eq('checkin_date', today)
-    .maybeSingle();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  return NextResponse.json({ checkin: checkin ?? null });
+function isMoodLevel(value: unknown): value is MoodLevel {
+  return (
+    value === 'great' ||
+    value === 'good' ||
+    value === 'neutral' ||
+    value === 'low' ||
+    value === 'very_low'
+  );
 }
 
-const MOOD_VALID: readonly string[] = [
-  'great',
-  'good',
-  'neutral',
-  'low',
-  'bad',
-];
-
 /**
- * POST /api/mood
- * Upserts today's mood check-in for the current user.
- * Body: { mood: 'great'|'good'|'neutral'|'low'|'bad', note?: string }
+ * Accepts:
+ * - DB enums: "great" | "good" | "neutral" | "low" | "very_low"
+ * - UI numbers: 1..5  (1=great ... 5=very_low)
+ * - Some legacy aliases if needed (optional)
  */
+function toMoodLevel(value: unknown): MoodLevel {
+  // already correct
+  if (isMoodLevel(value)) return value;
+
+  // support numeric mood input (common in your UI)
+  if (typeof value === 'number') {
+    if (value === 1) return 'great';
+    if (value === 2) return 'good';
+    if (value === 3) return 'neutral';
+    if (value === 4) return 'low';
+    if (value === 5) return 'very_low';
+  }
+
+  // support numeric string
+  if (typeof value === 'string') {
+    const n = Number(value);
+    if (Number.isFinite(n)) {
+      return toMoodLevel(n);
+    }
+
+    // OPTIONAL: normalize a couple legacy strings if they exist
+    // if (value === 'bad') return 'very_low';
+    // if (value === 'okay') return 'neutral';
+  }
+
+  // fallback (safe default)
+  return 'neutral';
+}
+
 export async function POST(req: Request) {
   const supabase = createSupabaseServerClient();
 
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-
-  if (!user) {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => null);
-  const moodRaw = body?.mood;
-  const noteRaw = body?.note;
+  const user = userData.user;
+  const body = await req.json();
 
-  const mood =
-    typeof moodRaw === 'string' && MOOD_VALID.includes(moodRaw) ? moodRaw : null;
-  const note = typeof noteRaw === 'string' ? noteRaw : undefined;
+  const checkin_date =
+    typeof body?.checkin_date === 'string'
+      ? body.checkin_date
+      : new Date().toISOString().slice(0, 10);
 
-  if (!mood) {
-    return NextResponse.json(
-      { error: "Mood must be one of: 'great', 'good', 'neutral', 'low', 'bad'" },
-      { status: 400 }
-    );
-  }
+  const mood = toMoodLevel(body?.mood);
+  const note = typeof body?.note === 'string' ? body.note : null;
 
-  // TODO: Use user timezone from profile to avoid day drift for global users.
-const today = new Date().toISOString().slice(0, 10);
+  const energy_level =
+    typeof body?.energy_level === 'number' ? body.energy_level : null;
+
+  const stress_level =
+    typeof body?.stress_level === 'number' ? body.stress_level : null;
 
   const { data, error } = await supabase
     .from('mood_checkins')
     .upsert(
       {
         user_id: user.id,
-        checkin_date: today,
-        mood,
-        note: note?.trim() || null,
+        checkin_date,
+        mood, // ✅ now typed as MoodLevel (DB enum)
+        note,
+        energy_level,
+        stress_level,
       },
-      {
-        onConflict: 'user_id,checkin_date',
-      }
+      { onConflict: 'user_id,checkin_date' }
     )
     .select('id,mood,note,checkin_date')
-    .single();
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ checkin: data });
+  return NextResponse.json({ data });
 }
