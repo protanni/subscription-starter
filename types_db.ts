@@ -1043,7 +1043,13 @@ export type Database = {
     Functions: {
       is_owner: { Args: { p_user_id: string }; Returns: boolean }
       seed_default_life_areas: { Args: never; Returns: undefined }
+    
+      convert_capture_to_task: {
+        Args: { p_capture_id: string; p_user_id: string }
+        Returns: Database['public']['Tables']['tasks']['Row']
+      }
     }
+    
     Enums: {
       capture_status: "inbox" | "processed" | "archived"
       capture_type:

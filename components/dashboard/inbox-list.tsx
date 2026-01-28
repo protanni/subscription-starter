@@ -1,3 +1,4 @@
+// components/dashboard/inbox-list.tsx
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -23,7 +24,7 @@ type ViewType = 'inbox' | 'archived';
  */
 export function InboxList({
   initialCaptures,
-  currentView
+  currentView,
 }: {
   initialCaptures: InboxCapture[];
   currentView: ViewType;
@@ -31,6 +32,9 @@ export function InboxList({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Per-capture lock for convert action (prevents double-click / retries from re-firing)
+  const [converting, setConverting] = useState<Record<string, boolean>>({});
 
   // Toggle between inbox and archived views
   function switchView(view: ViewType) {
@@ -76,18 +80,40 @@ export function InboxList({
   }
 
   async function convertToTask(captureId: string) {
-    const res = await fetch('/api/captures/convert-to-task', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ captureId }),
-    });
+    if (converting[captureId]) return;
 
-    if (!res.ok) {
-      console.error(await res.text());
-      return;
+    setConverting((p) => ({ ...p, [captureId]: true }));
+    try {
+      const res = await fetch('/api/captures/convert-to-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captureId }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        console.error(json?.error ?? json);
+        return;
+      }
+
+      const taskId = json?.task?.id as string | undefined;
+
+      // If server returns an existing/created task (idempotent),
+      // navigate/open it without error.
+      if (taskId) {
+        router.push(`/dashboard/tasks?open=${taskId}`);
+        return;
+      }
+
+      startTransition(() => router.refresh());
+    } finally {
+      setConverting((p) => {
+        const next = { ...p };
+        delete next[captureId];
+        return next;
+      });
     }
-
-    startTransition(() => router.refresh());
   }
 
   return (
@@ -157,8 +183,12 @@ export function InboxList({
                       type="button"
                       className="rounded-md border border-border/50 px-3 py-1.5 text-sm text-foreground hover:bg-muted/50 disabled:opacity-40 transition-colors"
                       onClick={() => convertToTask(c.id)}
-                      disabled={isPending}
-                      title="Convert this capture into a task"
+                      disabled={isPending || !!converting[c.id]}
+                      title={
+                        converting[c.id]
+                          ? 'Converting…'
+                          : 'Convert this capture into a task'
+                      }
                     >
                       To task
                     </button>
