@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProgressDots, ProtanniCheckbox } from '@/components/ui-kit';
 
@@ -15,49 +15,99 @@ type Habit = {
  * TodayHabits
  * - Client Component for toggling habit completion for today only.
  * - Simplified version of HabitList for Today page.
+ *
+ * Stability rules:
+ * - Lock per habit id (prevents duplicate mutations on rapid taps)
+ * - "Latest wins" per habit id (guards against out-of-order responses)
+ * - Refresh only AFTER settle (never mid-optimistic)
  */
 export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [habits, setHabits] = useState(initialHabits);
+  const [, startTransition] = useTransition();
 
-  // Sync local state when initialHabits changes
-  useEffect(() => {
-    setHabits(initialHabits);
-  }, [initialHabits]);
+  // Mount-only init to avoid refresh/props overwriting local state mid-mutation.
+  const [habits, setHabits] = useState(() => initialHabits);
+
+  // Pending lock per habit id
+  const [pendingById, setPendingById] = useState<Record<string, true>>({});
+
+  // "Latest wins" sequence per habit id
+  const seqByIdRef = useRef<Record<string, number>>({});
+
+  const isPending = (habitId: string) => pendingById[habitId] === true;
+
+  const lock = (habitId: string) => {
+    setPendingById((prev) => (prev[habitId] ? prev : { ...prev, [habitId]: true }));
+  };
+
+  const unlock = (habitId: string) => {
+    setPendingById((prev) => {
+      if (!prev[habitId]) return prev;
+      const next = { ...prev };
+      delete next[habitId];
+      return next;
+    });
+  };
+
+  const nextSeq = (habitId: string) => {
+    const curr = seqByIdRef.current[habitId] ?? 0;
+    const next = curr + 1;
+    seqByIdRef.current[habitId] = next;
+    return next;
+  };
+
+  const isLatest = (habitId: string, seq: number) => (seqByIdRef.current[habitId] ?? 0) === seq;
 
   async function toggle(habitId: string) {
-    const res = await fetch('/api/habits/toggle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ habitId }),
-    });
+    if (isPending(habitId)) return;
 
-    if (!res.ok) {
-      console.error(await res.text());
-      return;
-    }
+    const seq = nextSeq(habitId);
+    lock(habitId);
 
+    // Optimistic flip
     setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id !== habitId) return h;
-        return { ...h, done_today: !h.done_today };
-      })
+      prev.map((h) => (h.id === habitId ? { ...h, done_today: !h.done_today } : h))
     );
-  
-    startTransition(() => router.refresh());
+
+    try {
+      const res = await fetch('/api/habits/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ habitId }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error(errText || `POST /api/habits/toggle failed (${res.status})`);
+
+        // Rollback if still latest
+        if (isLatest(habitId, seq)) {
+          setHabits((prev) =>
+            prev.map((h) => (h.id === habitId ? { ...h, done_today: !h.done_today } : h))
+          );
+        }
+        return;
+      }
+
+      if (!isLatest(habitId, seq)) return;
+
+      // Keep optimistic state; server truth will be reflected on refresh after settle.
+    } finally {
+      unlock(habitId);
+      startTransition(() => router.refresh());
+    }
   }
 
   if (!habits.length) {
-    return (
-      <div className="py-4 text-sm text-muted-foreground">No habits set up yet.</div>
-    );
+    return <div className="py-4 text-sm text-muted-foreground">No habits set up yet.</div>;
   }
 
   return (
     <div className="divide-y divide-border/50">
       {habits.map((h) => {
         const done = h.done_today;
+        const rowPending = isPending(h.id);
+
         return (
           <div
             key={h.id}
@@ -66,13 +116,15 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
             <ProtanniCheckbox
               checked={done}
               onChange={() => toggle(h.id)}
-              disabled={isPending}
+              disabled={rowPending}
               aria-label={done ? `Mark ${h.name} incomplete` : `Mark ${h.name} complete`}
             />
+
             <div className="flex-1 min-w-0 space-y-1">
               <div className={done ? 'font-medium text-muted-foreground' : 'font-medium text-sm'}>
                 {h.name}
               </div>
+
               <ProgressDots
                 completedDates={h.completedDates ?? []}
                 days={7}

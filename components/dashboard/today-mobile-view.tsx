@@ -1,7 +1,8 @@
+// components/dashboard/today-mobile-view.tsx
 'use client';
 
 import type { MoodCheckinRow } from '@/components/dashboard/today-types';
-import { useState, useEffect, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -67,6 +68,11 @@ export interface TodayMobileViewProps {
  * Mobile Today view matching Lovable composition.
  * Order: ScreenHeader → Daily Focus → Open Tasks → Today's Habits → Mood.
  * No metrics grid, no events.
+ *
+ * Stability rules (Sprint 1):
+ * - Lock per entity during mutation (focus, tasks per id, mood)
+ * - Prevent duplicate mutations and out-of-order overwrites
+ * - Refresh only after settle
  */
 export function TodayMobileView({
   openTasks: initialOpenTasks,
@@ -75,7 +81,7 @@ export function TodayMobileView({
   dailyFocus,
 }: TodayMobileViewProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const [selectedMood, setSelectedMood] = useState<MoodLevel | null>(() => {
     const raw = moodCheckin?.mood;
@@ -83,9 +89,21 @@ export function TodayMobileView({
       ? (raw as MoodLevel)
       : null;
   });
-  const [openTasks, setOpenTasks] = useState(initialOpenTasks);
+
+  // Mount-only init (do not resync from props during mutations)
+  const [openTasks, setOpenTasks] = useState(() => initialOpenTasks);
+
   const [isEditingFocus, setIsEditingFocus] = useState(false);
   const [focusInput, setFocusInput] = useState('');
+
+  // ---- Locks (scoped) ----
+  const [isSavingFocus, setIsSavingFocus] = useState(false);
+
+  const [pendingTaskById, setPendingTaskById] = useState<Record<string, true>>({});
+  const taskSeqRef = useRef<Record<string, number>>({});
+
+  const [isSavingMood, setIsSavingMood] = useState(false);
+  const moodSeqRef = useRef(0);
 
   const greeting = getGreeting();
   const dateString = formatDate();
@@ -95,16 +113,27 @@ export function TodayMobileView({
     isFocusToday(dailyFocus.updatedAt) && (dailyFocus.text ?? '').trim().length > 0;
   const currentFocusText = hasFocusToday ? (dailyFocus.text ?? '').trim() : '';
 
+  // ---- Focus mutation ----
   async function saveDailyFocus() {
+    if (isSavingFocus) return;
+
     const text = focusInput.trim();
-    const res = await fetch('/api/profile/daily-focus', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    if (!res.ok) return;
-    setIsEditingFocus(false);
-    startTransition(() => router.refresh());
+    setIsSavingFocus(true);
+
+    try {
+      const res = await fetch('/api/profile/daily-focus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!res.ok) return;
+
+      setIsEditingFocus(false);
+    } finally {
+      setIsSavingFocus(false);
+      startTransition(() => router.refresh());
+    }
   }
 
   function handleStartEditFocus() {
@@ -116,43 +145,100 @@ export function TodayMobileView({
     if (e.key === 'Enter') saveDailyFocus();
   }
 
-  useEffect(() => {
-    setOpenTasks(initialOpenTasks);
-  }, [initialOpenTasks]);
+  // ---- Task toggle mutation (lock per task id) ----
+  const isTaskPending = (taskId: string) => pendingTaskById[taskId] === true;
+
+  const lockTask = (taskId: string) => {
+    setPendingTaskById((prev) => (prev[taskId] ? prev : { ...prev, [taskId]: true }));
+  };
+
+  const unlockTask = (taskId: string) => {
+    setPendingTaskById((prev) => {
+      if (!prev[taskId]) return prev;
+      const next = { ...prev };
+      delete next[taskId];
+      return next;
+    });
+  };
+
+  const nextTaskSeq = (taskId: string) => {
+    const curr = taskSeqRef.current[taskId] ?? 0;
+    const next = curr + 1;
+    taskSeqRef.current[taskId] = next;
+    return next;
+  };
+
+  const isLatestTaskSeq = (taskId: string, seq: number) =>
+    (taskSeqRef.current[taskId] ?? 0) === seq;
 
   async function toggleTask(taskId: string) {
-    const res = await fetch('/api/tasks/toggle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId }),
-    });
-    if (!res.ok) return;
+    if (isTaskPending(taskId)) return;
+
+    const seq = nextTaskSeq(taskId);
+    lockTask(taskId);
+
+    // Optimistic remove (task disappears as "completed")
+    const snapshot = openTasks;
     setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
-    startTransition(() => router.refresh());
+
+    try {
+      const res = await fetch('/api/tasks/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId }),
+      });
+
+      if (!res.ok) {
+        // rollback only if still latest for this task
+        if (isLatestTaskSeq(taskId, seq)) {
+          setOpenTasks(snapshot);
+        }
+        return;
+      }
+
+      if (!isLatestTaskSeq(taskId, seq)) return;
+    } finally {
+      unlockTask(taskId);
+      startTransition(() => router.refresh());
+    }
   }
 
+  // ---- Mood mutation (single entity lock + latest wins) ----
   async function selectMood(level: MoodLevel) {
-    if (isPending) return;
+    if (isSavingMood) return;
+
+    const seq = (moodSeqRef.current += 1);
+    setIsSavingMood(true);
 
     const prev = selectedMood;
 
     // Optimistic UI
     setSelectedMood(level);
 
-    const res = await fetch('/api/mood', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mood: level }),
-    });
+    try {
+      const res = await fetch('/api/mood', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mood: level }),
+      });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      console.error('POST /api/mood failed', res.status, err);
-      setSelectedMood(prev);
-      return;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('POST /api/mood failed', res.status, err);
+
+        if (moodSeqRef.current === seq) {
+          setSelectedMood(prev);
+        }
+        return;
+      }
+
+      if (moodSeqRef.current !== seq) return;
+    } finally {
+      if (moodSeqRef.current === seq) {
+        setIsSavingMood(false);
+        startTransition(() => router.refresh());
+      }
     }
-
-    startTransition(() => router.refresh());
   }
 
   const selectedLevel = selectedMood;
@@ -167,11 +253,7 @@ export function TodayMobileView({
       initial="hidden"
       animate="show"
     >
-      <ScreenHeader
-        title={greeting}
-        subtitle={dateString}
-        systemLabel="Daily Control Layer"
-      />
+      <ScreenHeader title={greeting} subtitle={dateString} systemLabel="Daily Control Layer" />
 
       {/* Daily Focus – Lovable UX + Supabase persistence */}
       <motion.section variants={itemVariants}>
@@ -184,6 +266,7 @@ export function TodayMobileView({
                 setIsEditingFocus(true);
               }}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              disabled={isSavingFocus}
             >
               <Plus className="w-4 h-4" />
               Set daily focus
@@ -198,6 +281,7 @@ export function TodayMobileView({
               onBlur={saveDailyFocus}
               onKeyDown={handleFocusKeyDown}
               autoFocus
+              disabled={isSavingFocus}
             />
           ) : (
             <div className="flex items-start justify-between gap-3">
@@ -207,6 +291,7 @@ export function TodayMobileView({
                 onClick={handleStartEditFocus}
                 className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Edit focus"
+                disabled={isSavingFocus}
               >
                 <Pencil className="w-4 h-4" />
               </button>
@@ -225,7 +310,7 @@ export function TodayMobileView({
                 <ProtanniCheckbox
                   checked={false}
                   onChange={() => toggleTask(task.id)}
-                  disabled={isPending}
+                  disabled={isTaskPending(task.id)}
                 />
                 <span className="text-sm text-foreground">{task.title}</span>
               </div>
@@ -281,7 +366,9 @@ export function TodayMobileView({
       <motion.section variants={itemVariants} className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mood</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Mood
+            </span>
             <h2 className="text-sm font-medium text-foreground">How are you feeling?</h2>
           </div>
           {hasMoodToday && (
@@ -300,6 +387,7 @@ export function TodayMobileView({
               level={level}
               isSelected={selectedLevel === level}
               onSelect={() => selectMood(level)}
+              disabled={isSavingMood}
             />
           ))}
         </div>

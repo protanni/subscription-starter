@@ -1,6 +1,7 @@
+// components/dashboard/mood-checkin.tsx
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Smile, Meh, Frown, Heart, AlertCircle } from 'lucide-react';
 import type { MoodCheckinRow } from '@/components/dashboard/today-types';
@@ -71,29 +72,63 @@ function moodToNumber(m: number | MoodLevel | null | undefined): number | null {
  * MoodCheckin
  * - Client Component for mood check-in (1-5 scale).
  * - Calls POST /api/mood to upsert today's mood.
+ *
+ * Stability rules:
+ * - Prevent duplicate submits while mutation is in-flight
+ * - "Latest wins" (ignore out-of-order responses)
+ * - Refresh only after settle
  */
 export function MoodCheckin({ initialCheckin }: { initialCheckin: MoodCheckinRow }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const [selectedMood, setSelectedMood] = useState<number | null>(
     moodToNumber(initialCheckin?.mood)
   );
 
+  // Mood is a single entity for today, so a single lock is enough.
+  const [isMutating, setIsMutating] = useState(false);
+
+  // "Latest wins" sequence for out-of-order protection
+  const seqRef = useRef(0);
+
   async function selectMood(mood: number) {
-    const res = await fetch('/api/mood', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mood }),
-    });
+    if (isMutating) return;
 
-    if (!res.ok) {
-      console.error(await res.text());
-      return;
-    }
+    const seq = (seqRef.current += 1);
+    setIsMutating(true);
 
+    // Optimistic set (prevents flicker and keeps UI consistent with the latest tap)
+    const prev = selectedMood;
     setSelectedMood(mood);
-    startTransition(() => router.refresh());
+
+    try {
+      const res = await fetch('/api/mood', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mood }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error(errText || `POST /api/mood failed (${res.status})`);
+
+        // Roll back only if this is still the latest interaction
+        if (seqRef.current === seq) {
+          setSelectedMood(prev);
+        }
+        return;
+      }
+
+      // Ignore stale responses
+      if (seqRef.current !== seq) return;
+    } finally {
+      // Only unlock if this is the latest interaction; otherwise a newer one is running.
+      if (seqRef.current === seq) {
+        setIsMutating(false);
+        startTransition(() => router.refresh());
+      }
+    }
   }
 
   const selectedOption = selectedMood
@@ -106,15 +141,11 @@ export function MoodCheckin({ initialCheckin }: { initialCheckin: MoodCheckinRow
         <div className="mb-3">
           <p className="text-sm text-muted-foreground">
             Today:{' '}
-            <span className="font-medium text-gray-900">
-              {selectedOption.label}
-            </span>
+            <span className="font-medium text-gray-900">{selectedOption.label}</span>
           </p>
         </div>
       ) : (
-        <p className="mb-3 text-sm text-muted-foreground">
-          How are you feeling today?
-        </p>
+        <p className="mb-3 text-sm text-muted-foreground">How are you feeling today?</p>
       )}
 
       <div className="flex flex-wrap gap-3">
@@ -126,7 +157,7 @@ export function MoodCheckin({ initialCheckin }: { initialCheckin: MoodCheckinRow
             <button
               key={option.value}
               onClick={() => selectMood(option.value)}
-              disabled={isPending}
+              disabled={isMutating}
               className={`
                 flex-1 min-w-[90px] max-w-[130px]
                 rounded-lg border-2 p-4

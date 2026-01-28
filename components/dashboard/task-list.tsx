@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition, useMemo } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus } from 'lucide-react';
 import { cn } from '@/utils/cn';
@@ -33,16 +33,42 @@ export function TaskList({
   completedTasks: Task[];
 }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const { category, emptyMessage } = useTasksCategory();
 
-  const [openTasks, setOpenTasks] = useState(initialOpen);
-  const [completedTasks, setCompletedTasks] = useState(initialCompleted);
+  // Mount-only init to avoid refresh/props overwriting optimistic/local state mid-mutation.
+  const [openTasks, setOpenTasks] = useState(() => initialOpen);
+  const [completedTasks, setCompletedTasks] = useState(() => initialCompleted);
 
-  useEffect(() => {
-    setOpenTasks(initialOpen);
-    setCompletedTasks(initialCompleted);
-  }, [initialOpen, initialCompleted]);
+  // Pending lock per task id (prevents duplicate mutations per item).
+  const [pendingById, setPendingById] = useState<Record<string, true>>({});
+
+  // "Latest wins" sequence per task id (guards against out-of-order responses).
+  const seqByIdRef = useRef<Record<string, number>>({});
+
+  const isTaskPending = (taskId: string) => pendingById[taskId] === true;
+
+  const lock = (taskId: string) => {
+    setPendingById((prev) => (prev[taskId] ? prev : { ...prev, [taskId]: true }));
+  };
+
+  const unlock = (taskId: string) => {
+    setPendingById((prev) => {
+      if (!prev[taskId]) return prev;
+      const next = { ...prev };
+      delete next[taskId];
+      return next;
+    });
+  };
+
+  const nextSeq = (taskId: string) => {
+    const curr = seqByIdRef.current[taskId] ?? 0;
+    const next = curr + 1;
+    seqByIdRef.current[taskId] = next;
+    return next;
+  };
+
+  const isLatest = (taskId: string, seq: number) => (seqByIdRef.current[taskId] ?? 0) === seq;
 
   // Client-side filtering based on selected category
   const filteredOpenTasks = useMemo(() => {
@@ -56,39 +82,66 @@ export function TaskList({
   }, [completedTasks, category]);
 
   async function toggle(taskId: string, currentlyDone: boolean) {
-    const res = await fetch('/api/tasks/toggle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId }),
-    });
-    if (!res.ok) {
-      console.error(await res.text());
-      return;
-    }
+    if (isTaskPending(taskId)) return;
 
-    if (currentlyDone) {
-      setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
-    } else {
-      setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
-    }
+    const seq = nextSeq(taskId);
+    lock(taskId);
 
-    startTransition(() => router.refresh());
+    try {
+      const res = await fetch('/api/tasks/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId }),
+      });
+
+      if (!res.ok) {
+        console.error(await res.text());
+        return;
+      }
+
+      // If a newer mutation happened, ignore this response.
+      if (!isLatest(taskId, seq)) return;
+
+      // Update local state to match expected server result.
+      if (currentlyDone) {
+        setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
+      } else {
+        setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
+      }
+    } finally {
+      // Always unlock; then refresh AFTER mutation settles.
+      // Refresh is allowed here because we are not in the middle of applying optimistic state.
+      unlock(taskId);
+      startTransition(() => router.refresh());
+    }
   }
 
   async function deleteTask(taskId: string) {
-    const res = await fetch('/api/tasks/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId }),
-    });
-    if (!res.ok) {
-      console.error(await res.text());
-      return;
-    }
+    if (isTaskPending(taskId)) return;
 
-    setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
-    setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
-    startTransition(() => router.refresh());
+    const seq = nextSeq(taskId);
+    lock(taskId);
+
+    try {
+      const res = await fetch('/api/tasks/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId }),
+      });
+
+      if (!res.ok) {
+        console.error(await res.text());
+        return;
+      }
+
+      if (!isLatest(taskId, seq)) return;
+
+      setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
+      setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } finally {
+      unlock(taskId);
+      startTransition(() => router.refresh());
+    }
   }
 
   const noOpen = filteredOpenTasks.length === 0;
@@ -111,7 +164,7 @@ export function TaskList({
               key={t.id}
               task={t}
               isDone={false}
-              isPending={isPending}
+              isPending={isTaskPending(t.id)}
               onToggle={() => toggle(t.id, false)}
               onDelete={() => deleteTask(t.id)}
             />
@@ -136,7 +189,7 @@ export function TaskList({
                 key={t.id}
                 task={t}
                 isDone
-                isPending={isPending}
+                isPending={isTaskPending(t.id)}
                 onToggle={() => toggle(t.id, true)}
                 onDelete={() => deleteTask(t.id)}
               />

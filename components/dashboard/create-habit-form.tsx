@@ -1,3 +1,4 @@
+// components/dashboard/create-habit-form.tsx
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -10,6 +11,10 @@ import { Plus } from 'lucide-react';
  * - Calls POST /api/habits to create a habit.
  * - Uses router.refresh() to re-fetch Server Component data.
  * - Matches Tasks input styling: bg-card, rounded-xl, Plus icon.
+ *
+ * Stability rules:
+ * - Prevent duplicate submits while mutation is in-flight
+ * - Refresh only after settle
  */
 export function CreateHabitForm() {
   const [name, setName] = useState('');
@@ -18,23 +23,28 @@ export function CreateHabitForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isPending) return;
 
     const value = name.trim();
     if (!value) return;
 
-    const res = await fetch('/api/habits', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: value }),
-    });
+    try {
+      const res = await fetch('/api/habits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: value }),
+      });
 
-    if (!res.ok) {
-      console.error(await res.text());
-      return;
+      if (!res.ok) {
+        console.error(await res.text());
+        return;
+      }
+
+      setName('');
+    } finally {
+      // Refresh after settle to re-fetch Server Component data
+      startTransition(() => router.refresh());
     }
-
-    setName('');
-    startTransition(() => router.refresh());
   }
 
   return (
