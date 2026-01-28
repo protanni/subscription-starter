@@ -26,8 +26,6 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
     setHabits(initialHabits);
   }, [initialHabits]);
 
-  const today = new Date().toISOString().slice(0, 10);
-
   async function toggle(habitId: string) {
     const res = await fetch('/api/habits/toggle', {
       method: 'POST',
@@ -43,17 +41,10 @@ export function TodayHabits({ initialHabits }: { initialHabits: Habit[] }) {
     setHabits((prev) =>
       prev.map((h) => {
         if (h.id !== habitId) return h;
-        const next = !h.done_today;
-        const dates = h.completedDates ?? [];
-        const nextDates = next
-          ? dates.includes(today)
-            ? dates
-            : [...dates, today]
-          : dates.filter((d: string) => d !== today);
-        return { ...h, done_today: next, completedDates: nextDates };
+        return { ...h, done_today: !h.done_today };
       })
     );
-
+  
     startTransition(() => router.refresh());
   }
 

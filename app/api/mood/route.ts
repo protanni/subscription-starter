@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Database } from '@/types_db';
+import { getUserTimezone } from '@/lib/profile/get-user-timezone';
+import { getUserToday } from '@/lib/dates/timezone';
 
 type MoodLevel = Database['public']['Enums']['mood_level'];
 
@@ -61,10 +63,13 @@ export async function POST(req: Request) {
   const user = userData.user;
   const body = await req.json();
 
-  const checkin_date =
-    typeof body?.checkin_date === 'string'
-      ? body.checkin_date
-      : new Date().toISOString().slice(0, 10);
+  const timezone = await getUserTimezone(supabase);
+const today = getUserToday(timezone);
+
+const checkinDate =
+  typeof body.checkin_date === 'string' && body.checkin_date.trim()
+    ? body.checkin_date.trim()
+    : today;
 
   const mood = toMoodLevel(body?.mood);
   const note = typeof body?.note === 'string' ? body.note : null;
@@ -80,7 +85,7 @@ export async function POST(req: Request) {
     .upsert(
       {
         user_id: user.id,
-        checkin_date,
+        checkin_date: checkinDate,
         mood, // ✅ now typed as MoodLevel (DB enum)
         note,
         energy_level,

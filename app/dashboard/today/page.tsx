@@ -1,6 +1,12 @@
 // app/dashboard/today/page.tsx
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { TodayViewSwitcher } from '@/components/dashboard/today-view-switcher';
+import { getUserTimezone } from '@/lib/profile/get-user-timezone';
+import {
+  getUserToday,
+  getUserWeekRangeUtc,
+  getUserDayRangeUtc,
+} from '@/lib/dates/timezone';
 
 function dbMoodToNumber(
   mood: 'great' | 'good' | 'neutral' | 'low' | 'very_low'
@@ -19,7 +25,9 @@ export default async function TodayPage() {
 
   if (!user) return null;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const timezone = await getUserTimezone(supabase);
+  const today = getUserToday(timezone);
+
 
   const { data: summary } = await supabase
     .from('v_today_summary')
@@ -56,17 +64,16 @@ export default async function TodayPage() {
 
   const completedIds = new Set(logs?.map((log) => log.habit_id) ?? []);
 
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - 6);
-  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const { startKey: weekStartKey, endKey: weekEndKeyExclusive } =
+  getUserWeekRangeUtc(timezone, today);
 
   const { data: weeklyLogs } =
     habitIds.length > 0
       ? await supabase
           .from('habit_logs')
           .select('habit_id,log_date')
-          .gte('log_date', weekStartStr)
-          .lte('log_date', today)
+          .gte('log_date', weekStartKey)
+          .lt('log_date', weekEndKeyExclusive)
           .in('habit_id', habitIds)
       : { data: null };
 
@@ -98,12 +105,15 @@ export default async function TodayPage() {
       }
     : null;
 
+    const { startUtc: dayStartUtc, endUtc: dayEndUtc } =
+  getUserDayRangeUtc(timezone, today);
+
   const { data: events } = await supabase
     .from('calendar_events')
     .select('id,title,starts_at,ends_at,all_day')
     .eq('user_id', user.id)
-    .gte('starts_at', `${today}T00:00:00.000Z`)
-    .lt('starts_at', `${today}T23:59:59.999Z`)
+    .gte('starts_at', dayStartUtc)
+    .lt('starts_at', dayEndUtc)
     .order('starts_at', { ascending: true });
 
   const { data: profile } = await supabase

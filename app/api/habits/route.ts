@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getUserTimezone } from '@/lib/profile/get-user-timezone';
+import { getUserToday } from '@/lib/dates/timezone';
+
 
 /**
  * POST /api/habits
@@ -53,8 +56,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get UTC date string (YYYY-MM-DD)
-  const today = new Date().toISOString().slice(0, 10);
+  const timezone = await getUserTimezone(supabase);
+  const today = getUserToday(timezone);
+
 
   // Fetch active habits
   const { data: habits, error: habitsError } = await supabase

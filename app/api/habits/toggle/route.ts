@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getUserTimezone } from '@/lib/profile/get-user-timezone';
+import { getUserToday } from '@/lib/dates/timezone';
 
 /**
  * POST /api/habits/toggle
@@ -36,8 +38,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // Get UTC date string (YYYY-MM-DD)
-  const today = new Date().toISOString().slice(0, 10);
+  const timezone = await getUserTimezone(supabase);
+  const today = getUserToday(timezone);  
 
   // Check if log exists for today
   const { data: existingLog, error: checkError } = await supabase

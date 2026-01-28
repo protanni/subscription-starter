@@ -3,6 +3,9 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { CreateHabitForm } from '@/components/dashboard/create-habit-form';
 import { HabitList } from '@/components/dashboard/habit-list';
 import { HabitsMobileView } from '@/components/dashboard/habits-mobile-view';
+import { getUserTimezone } from '@/lib/profile/get-user-timezone';
+import { getUserToday } from '@/lib/dates/timezone';
+
 
 export default async function HabitsPage() {
   // Server Component: fetch initial habits list on the server.
@@ -12,8 +15,9 @@ export default async function HabitsPage() {
   const user = userData.user;
   if (!user) return null;
 
-  // Get UTC date string (YYYY-MM-DD)
-  const today = new Date().toISOString().slice(0, 10);
+  const timezone = await getUserTimezone(supabase);
+  const today = getUserToday(timezone);
+  
 
   // Fetch active habits
   const { data: habits, error: habitsError } = await supabase
