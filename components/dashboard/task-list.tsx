@@ -3,13 +3,12 @@
 
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Loader2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { ListCard, MutedListCard } from '@/components/ui-kit/content-card';
 import { ProtanniCheckbox } from '@/components/ui-kit/protanni-checkbox';
 import { useTasksCategory } from '@/components/dashboard/tasks-category-context';
-import { apiFetch } from '@/lib/api/clients'; 
-
+import { apiFetch } from '@/lib/api/clients';
 
 type Task = {
   id: string;
@@ -86,19 +85,19 @@ export function TaskList({
 
   async function toggle(taskId: string, currentlyDone: boolean) {
     if (isTaskPending(taskId)) return;
-  
+
     const seq = nextSeq(taskId);
     lock(taskId);
-  
+
     try {
       await apiFetch<{ status: string }>('/api/tasks/toggle', {
         method: 'POST',
         body: JSON.stringify({ taskId }),
       });
-  
+
       // If a newer mutation happened, ignore this response.
       if (!isLatest(taskId, seq)) return;
-  
+
       // Update local state to match expected server result.
       if (currentlyDone) {
         setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
@@ -113,21 +112,21 @@ export function TaskList({
       startTransition(() => router.refresh());
     }
   }
-  
+
   async function deleteTask(taskId: string) {
     if (isTaskPending(taskId)) return;
-  
+
     const seq = nextSeq(taskId);
     lock(taskId);
-  
+
     try {
       await apiFetch<{ ok: true }>('/api/tasks/delete', {
         method: 'POST',
         body: JSON.stringify({ taskId }),
       });
-  
+
       if (!isLatest(taskId, seq)) return;
-  
+
       setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
       setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
     } catch (err) {
@@ -137,7 +136,7 @@ export function TaskList({
       unlock(taskId);
       startTransition(() => router.refresh());
     }
-  }  
+  }
 
   const noOpen = filteredOpenTasks.length === 0;
   const noCompleted = filteredCompletedTasks.length === 0;
@@ -210,11 +209,20 @@ function TaskRow({
   onDelete: () => void;
 }) {
   return (
-    <div className={cn('flex items-center gap-3 p-4', isDone && 'text-muted-foreground')}>
+    <div
+      className={cn(
+        'flex items-center gap-3 p-4',
+        isDone && 'text-muted-foreground',
+        isPending && 'opacity-60'
+      )}
+      aria-busy={isPending}
+    >
       <ProtanniCheckbox checked={isDone} onChange={onToggle} disabled={isPending} />
 
       <div className="flex-1 min-w-0 flex items-center gap-2">
         <span className="text-sm font-medium truncate">{task.title}</span>
+
+        {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
 
         {/* Optional label (requires tasks.area to be selected in queries) */}
         {task.area && (
