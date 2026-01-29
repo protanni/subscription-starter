@@ -1,3 +1,4 @@
+// components/dashboard/task-list.tsx
 'use client';
 
 import { useMemo, useRef, useState, useTransition } from 'react';
@@ -7,6 +8,8 @@ import { cn } from '@/utils/cn';
 import { ListCard, MutedListCard } from '@/components/ui-kit/content-card';
 import { ProtanniCheckbox } from '@/components/ui-kit/protanni-checkbox';
 import { useTasksCategory } from '@/components/dashboard/tasks-category-context';
+import { apiFetch } from '@/lib/api/clients'; 
+
 
 type Task = {
   id: string;
@@ -83,66 +86,58 @@ export function TaskList({
 
   async function toggle(taskId: string, currentlyDone: boolean) {
     if (isTaskPending(taskId)) return;
-
+  
     const seq = nextSeq(taskId);
     lock(taskId);
-
+  
     try {
-      const res = await fetch('/api/tasks/toggle', {
+      await apiFetch<{ status: string }>('/api/tasks/toggle', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId }),
       });
-
-      if (!res.ok) {
-        console.error(await res.text());
-        return;
-      }
-
+  
       // If a newer mutation happened, ignore this response.
       if (!isLatest(taskId, seq)) return;
-
+  
       // Update local state to match expected server result.
       if (currentlyDone) {
         setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
       } else {
         setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
       }
+    } catch (err) {
+      console.error('Toggle task failed', err);
+      return;
     } finally {
-      // Always unlock; then refresh AFTER mutation settles.
-      // Refresh is allowed here because we are not in the middle of applying optimistic state.
       unlock(taskId);
       startTransition(() => router.refresh());
     }
   }
-
+  
   async function deleteTask(taskId: string) {
     if (isTaskPending(taskId)) return;
-
+  
     const seq = nextSeq(taskId);
     lock(taskId);
-
+  
     try {
-      const res = await fetch('/api/tasks/delete', {
+      await apiFetch<{ ok: true }>('/api/tasks/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId }),
       });
-
-      if (!res.ok) {
-        console.error(await res.text());
-        return;
-      }
-
+  
       if (!isLatest(taskId, seq)) return;
-
+  
       setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
       setCompletedTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } catch (err) {
+      console.error('Delete task failed', err);
+      return;
     } finally {
       unlock(taskId);
       startTransition(() => router.refresh());
     }
-  }
+  }  
 
   const noOpen = filteredOpenTasks.length === 0;
   const noCompleted = filteredCompletedTasks.length === 0;

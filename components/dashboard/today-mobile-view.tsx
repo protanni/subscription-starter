@@ -1,6 +1,7 @@
 // components/dashboard/today-mobile-view.tsx
 'use client';
 
+import { apiFetch } from '@/lib/api/clients';
 import type { MoodCheckinRow } from '@/components/dashboard/today-types';
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -177,69 +178,66 @@ export function TodayMobileView({
     const seq = nextTaskSeq(taskId);
     lockTask(taskId);
 
-    // Optimistic remove (task disappears as "completed")
-    const snapshot = openTasks;
-    setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
+  // Optimistic remove (task disappears as "completed")
+  const snapshot = openTasks;
+  setOpenTasks((prev) => prev.filter((t) => t.id !== taskId));
 
-    try {
-      const res = await fetch('/api/tasks/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId }),
-      });
+  try {
+  await apiFetch<{ status: string }>('/api/tasks/toggle', {
+    method: 'POST',
+    body: JSON.stringify({ taskId }),
+  });
 
-      if (!res.ok) {
-        // rollback only if still latest for this task
-        if (isLatestTaskSeq(taskId, seq)) {
-          setOpenTasks(snapshot);
-        }
-        return;
-      }
+  // If a newer mutation happened, ignore this response.
+  if (!isLatestTaskSeq(taskId, seq)) return;
+  } catch (err) {
+  console.error('Toggle task (Today) failed', err);
 
-      if (!isLatestTaskSeq(taskId, seq)) return;
-    } finally {
-      unlockTask(taskId);
+  // rollback optimistic update if this is still the latest mutation
+  if (isLatestTaskSeq(taskId, seq)) {
+    setOpenTasks(snapshot);
+  }
+  return;
+  } finally {
+  unlockTask(taskId);
+  startTransition(() => router.refresh());
+  }
+}
+
+  // ---- Mood mutation (single entity lock + latest wins) ----
+async function selectMood(level: MoodLevel) {
+  if (isSavingMood) return;
+
+  const seq = (moodSeqRef.current += 1);
+  setIsSavingMood(true);
+
+  const prev = selectedMood;
+
+  // Optimistic UI
+  setSelectedMood(level);
+
+  try {
+    await apiFetch<{ data: unknown }>('/api/mood', {
+      method: 'POST',
+      body: JSON.stringify({ mood: level }),
+    });
+
+    if (moodSeqRef.current !== seq) return;
+  } catch (err) {
+    console.error('POST /api/mood failed', err);
+
+    // rollback optimistic state
+    if (moodSeqRef.current === seq) {
+      setSelectedMood(prev);
+    }
+    return;
+  } finally {
+    if (moodSeqRef.current === seq) {
+      setIsSavingMood(false);
       startTransition(() => router.refresh());
     }
   }
-
-  // ---- Mood mutation (single entity lock + latest wins) ----
-  async function selectMood(level: MoodLevel) {
-    if (isSavingMood) return;
-
-    const seq = (moodSeqRef.current += 1);
-    setIsSavingMood(true);
-
-    const prev = selectedMood;
-
-    // Optimistic UI
-    setSelectedMood(level);
-
-    try {
-      const res = await fetch('/api/mood', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mood: level }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error('POST /api/mood failed', res.status, err);
-
-        if (moodSeqRef.current === seq) {
-          setSelectedMood(prev);
-        }
-        return;
-      }
-
-      if (moodSeqRef.current !== seq) return;
-    } finally {
-      if (moodSeqRef.current === seq) {
-        setIsSavingMood(false);
-        startTransition(() => router.refresh());
-      }
-    }
-  }
+}
 
   const selectedLevel = selectedMood;
 

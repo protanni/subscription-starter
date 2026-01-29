@@ -1,9 +1,11 @@
+// components/dashboard/create-task-form.tsx
 'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { useTasksCategory } from '@/components/dashboard/tasks-category-context';
+import { apiFetch } from '@/lib/api/clients';
 
 /**
  * CreateTaskForm
@@ -24,14 +26,13 @@ export function CreateTaskForm() {
 
     const area = category === 'all' ? null : category;
 
-    const res = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: value, area }),
-    });
-
-    if (!res.ok) {
-      console.error(await res.text());
+    try {
+      await apiFetch<{ task: unknown }>('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({ title: value, area }),
+      });
+    } catch (err) {
+      console.error('Create task failed', err);
       return;
     }
 

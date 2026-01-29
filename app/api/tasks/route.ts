@@ -1,19 +1,26 @@
-import { NextResponse } from 'next/server';
+// app/api/tasks/route.ts
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { withApiHandler } from '@/lib/api/handler';
+import { success, failure } from '@/lib/api/response';
+import { ERROR_CODES, ERROR_STATUS } from '@/lib/api/errors';
 
 /**
  * POST /api/tasks
  * Creates a new task for the current user.
  * Used by the Tasks "Quick Add" form.
  */
-export async function POST(req: Request) {
+export const POST = withApiHandler(async (req: Request) => {
   const supabase = createSupabaseServerClient();
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return failure(
+      ERROR_CODES.UNAUTHORIZED,
+      'Unauthorized',
+      ERROR_STATUS.UNAUTHORIZED
+    );
   }
 
   const body = await req.json().catch(() => null);
@@ -21,7 +28,11 @@ export async function POST(req: Request) {
   const title = (body?.title ?? '').trim();
 
   if (!title) {
-    return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    return failure(
+      ERROR_CODES.VALIDATION_ERROR,
+      'Title is required',
+      ERROR_STATUS.VALIDATION_ERROR
+    );
   }
 
   // Parse area safely: accept string | null | undefined
@@ -46,8 +57,13 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return failure(
+      ERROR_CODES.SUPABASE_ERROR,
+      error.message,
+      ERROR_STATUS.SUPABASE_ERROR
+    );
   }
 
-  return NextResponse.json({ task: data });
-}
+  // Preserve previous payload shape, now wrapped in success contract
+  return success({ task: data }, 201);
+});

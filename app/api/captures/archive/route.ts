@@ -1,22 +1,32 @@
-// app/api/captures/convert-to-task/route.ts
-import { NextResponse } from 'next/server';
+// app/api/captures/archive/route.ts
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { withApiHandler } from '@/lib/api/handler';
+import { success, failure } from '@/lib/api/response';
+import { ERROR_CODES, ERROR_STATUS } from '@/lib/api/errors';
 
-export async function POST(req: Request) {
-  const supabase = createSupabaseServerClient(); // ✅ aqui dentro
+export const POST = withApiHandler(async (req: Request) => {
+  const supabase = createSupabaseServerClient();
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
   const user = userData.user;
 
   if (userError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return failure(
+      ERROR_CODES.UNAUTHORIZED,
+      'Unauthorized',
+      ERROR_STATUS.UNAUTHORIZED
+    );
   }
 
-  const body = await req.json();
-  const { captureId } = body ?? {};
+  const body = await req.json().catch(() => null);
+  const { captureId } = (body ?? {}) as { captureId?: string };
 
   if (!captureId) {
-    return NextResponse.json({ error: 'Missing captureId' }, { status: 400 });
+    return failure(
+      ERROR_CODES.VALIDATION_ERROR,
+      'Missing captureId',
+      ERROR_STATUS.VALIDATION_ERROR
+    );
   }
 
   // 1) fetch capture
@@ -28,15 +38,27 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (captureError) {
-    return NextResponse.json({ error: captureError.message }, { status: 400 });
+    return failure(
+      ERROR_CODES.SUPABASE_ERROR,
+      captureError.message,
+      ERROR_STATUS.SUPABASE_ERROR
+    );
   }
 
   if (!capture) {
-    return NextResponse.json({ error: 'Capture not found' }, { status: 404 });
+    return failure(
+      ERROR_CODES.NOT_FOUND,
+      'Capture not found',
+      ERROR_STATUS.NOT_FOUND
+    );
   }
 
   if (capture.status !== 'inbox') {
-    return NextResponse.json({ error: 'Capture must be inbox to convert' }, { status: 400 });
+    return failure(
+      ERROR_CODES.VALIDATION_ERROR,
+      'Capture must be inbox to convert',
+      ERROR_STATUS.VALIDATION_ERROR
+    );
   }
 
   // 2) create task
@@ -53,11 +75,19 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (taskError) {
-    return NextResponse.json({ error: taskError.message }, { status: 400 });
+    return failure(
+      ERROR_CODES.SUPABASE_ERROR,
+      taskError.message,
+      ERROR_STATUS.SUPABASE_ERROR
+    );
   }
 
   if (!task?.id) {
-    return NextResponse.json({ error: 'Task creation failed' }, { status: 500 });
+    return failure(
+      ERROR_CODES.SERVER_ERROR,
+      'Task creation failed',
+      ERROR_STATUS.SERVER_ERROR
+    );
   }
 
   // 3) mark capture processed + link
@@ -72,8 +102,12 @@ export async function POST(req: Request) {
     .eq('user_id', user.id);
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 400 });
+    return failure(
+      ERROR_CODES.SUPABASE_ERROR,
+      updateError.message,
+      ERROR_STATUS.SUPABASE_ERROR
+    );
   }
 
-  return NextResponse.json({ ok: true, taskId: task.id });
-}
+  return success({ taskId: task.id });
+});

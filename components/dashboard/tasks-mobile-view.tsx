@@ -1,3 +1,4 @@
+// components/dashboard/tasks-mobile-view.tsx
 'use client';
 
 import { motion } from 'framer-motion';
